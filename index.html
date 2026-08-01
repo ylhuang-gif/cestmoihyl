@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報告評量 | NTSU-COM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Microsoft JhengHei', 'sans-serif'],
+                    },
+                    colors: {
+                        ntsu: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'slide-up': 'slideUp 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+        // Set worker src for pdf.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    </script>
+    <style>
+        /* Custom scrollbar for inner content */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; color: #1f2937; }
+        .markdown-body p { margin-bottom: 1em; line-height: 1.6; color: #4b5563; }
+        .markdown-body ul, .markdown-body ol { margin-left: 1.5em; margin-bottom: 1em; color: #4b5563; }
+        .markdown-body li { margin-bottom: 0.25em; }
+        .markdown-body strong { color: #111827; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-ntsu-200">
+
+    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-ntsu-600 to-ntsu-800 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <i class="fa-solid fa-graduation-cap text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">報告評量系統</h1>
+                    <p class="text-[10px] font-medium text-slate-500 hidden sm:block uppercase tracking-wider">NTSU-COM Report Evaluation System</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span class="hidden md:inline-flex items-center text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full font-medium border border-slate-200">
+                    <i class="fa-solid fa-code mr-1.5 text-slate-400"></i> CestmoiHYL
+                </span>
+                <button id="loadSampleBtn" onclick="loadSampleReport()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 範例資料
+                </button>
+                
+                <!-- Auth UI -->
+                <div id="userHeaderInfo" class="hidden items-center gap-2">
+                    <span id="headerUserName" class="text-xs font-bold text-ntsu-700 bg-ntsu-50 px-2 py-1 rounded-md border border-ntsu-200"></span>
+                    <button onclick="toggleAdminModal()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-users-gear"></i> 管理
+                    </button>
+                    <button onclick="window.handleLogout()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                        登出
+                    </button>
+                </div>
+                <button id="loginHeaderBtn" onclick="toggleAuthModal()" class="text-xs bg-ntsu-700 hover:bg-ntsu-800 text-white font-semibold px-4 py-1.5 rounded-lg shadow-md transition-all flex items-center gap-1.5 hover:shadow-lg active:scale-95">
+                    <i class="fa-solid fa-user-circle"></i> 會員登入
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 relative">
+        
+        <!-- Left Column: Upload & Rubric (40%) -->
+        <div class="w-full lg:w-2/5 flex flex-col gap-6">
+            
+            <!-- Upload Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-ntsu-600"></i>
+                    <h2 class="font-bold text-slate-800">上傳報告檔案</h2>
+                </div>
+                <div class="p-5">
+                    <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center transition-all duration-200 hover:border-ntsu-500 hover:bg-ntsu-50 group cursor-pointer" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                        <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-ntsu-100 transition-colors">
+                            <i class="fa-regular fa-file-pdf text-3xl text-slate-400 group-hover:text-ntsu-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-700 mb-1">點擊或拖曳檔案至此</h3>
+                        <p class="text-xs text-slate-500 mb-3">支援 .pdf, .docx, .pptx (單檔限 10MB)</p>
+                        <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.docx,.pptx,.ppt" onchange="handleFileSelect(event)">
+                        <button class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-5 py-2 rounded-lg shadow-sm transition-colors">
+                            選擇檔案
+                        </button>
+                    </div>
+
+                    <!-- File List -->
+                    <div id="fileListContainer" class="mt-4 hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold text-slate-600">已選擇檔案</span>
+                            <button onclick="clearAllFiles()" class="text-xs text-rose-500 hover:text-rose-700 font-medium">全部清除</button>
+                        </div>
+                        <ul id="fileList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></ul>
+                        
+                        <div class="mt-5 border-t border-slate-100 pt-5">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">API 授權金鑰 (Gemini)</label>
+                            <input type="password" id="apiKey" placeholder="請輸入 Gemini API Key" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-ntsu-500 focus:ring-1 focus:ring-ntsu-500 transition-shadow">
+                            
+                            <button id="startEvalBtn" onclick="startEvaluation()" class="w-full mt-4 bg-ntsu-700 hover:bg-ntsu-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 group hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-rocket group-hover:translate-x-1 transition-transform"></i> 開始 AI 智能評估
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rubric Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <button onclick="toggleRubric()" class="w-full px-5 py-4 bg-slate-50 flex items-center justify-between text-left hover:bg-slate-100 transition-colors">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-slate-500"></i>
+                        <h2 class="font-bold text-slate-800">標準評量尺規 (Rubric)</h2>
+                    </div>
+                    <i id="rubricIcon" class="fa-solid fa-chevron-down text-slate-400 transition-transform"></i>
+                </button>
+                <div id="rubricContent" class="hidden p-5 border-t border-slate-100 text-sm">
+                    <div class="space-y-4">
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <h4 class="font-bold text-ntsu-800 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-briefcase"></i> 1. 專業內容與產業鏈結 (40%)</h4>
+                            <p class="text-slate-600 text-xs leading-relaxed">理論基礎的正確性、內容深度，以及與休閒產業實務需求的契合度。是否能提出具體的產業洞察。</p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <h4 class="font-bold text-blue-800 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-diagram-project"></i> 2. 邏輯結構與推導 (30%)</h4>
+                            <p class="text-slate-600 text-xs leading-relaxed">簡報結構是否完整(起承轉合)、論點推導是否具備邏輯性，結論是否有足夠的數據或論述支持。</p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <h4 class="font-bold text-purple-800 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-object-group"></i> 3. 視覺呈現與資訊可讀性 (30%)</h4>
+                            <p class="text-slate-600 text-xs leading-relaxed">排版設計是否美觀、配色是否得宜、字體大小是否適中、圖表數據是否清晰易讀不雜亂。</p>
+                        </div>
+                        <div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                            <p class="text-xs text-amber-800 font-medium"><i class="fa-solid fa-circle-info mr-1"></i> AI 將採用「三明治回饋法」(肯定-建議-鼓勵)，提供客觀且具建設性的指導。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Dashboard & QA (60%) -->
+        <div class="w-full lg:w-3/5 flex flex-col gap-6">
+            
+            <!-- Dashboard Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col min-h-[400px] h-full overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-ntsu-600"></i>
+                        <h2 class="font-bold text-slate-800">評量結果看板</h2>
+                    </div>
+                    <div id="evalStatus" class="text-xs font-medium text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
+                        等待評估中...
+                    </div>
+                </div>
+                
+                <div class="flex-1 p-5 relative overflow-y-auto bg-slate-50/50">
+                    
+                    <!-- Initial Empty State -->
+                    <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+                        <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fa-solid fa-robot text-4xl text-slate-300"></i>
+                        </div>
+                        <p class="font-medium text-slate-600 mb-1">尚未進行評量</p>
+                        <p class="text-sm">請於左側上傳報告檔案，輸入API金鑰後開始評估。</p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="loadingState" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
+                        <div class="relative w-16 h-16 mb-4">
+                            <div class="absolute inset-0 border-4 border-ntsu-200 rounded-full"></div>
+                            <div class="absolute inset-0 border-4 border-ntsu-600 rounded-full border-t-transparent animate-spin"></div>
+                            <i class="fa-solid fa-brain absolute inset-0 flex items-center justify-center text-ntsu-600 animate-pulse text-xl"></i>
+                        </div>
+                        <p class="font-bold text-ntsu-800 animate-pulse mb-1">AI 正在仔細閱讀與分析...</p>
+                        <p class="text-xs text-slate-500">預計需要 10-20 秒，請稍候</p>
+                    </div>
+
+                    <!-- Results Display -->
+                    <div id="resultDisplay" class="hidden flex-col gap-6 animate-slide-up">
+                        
+                        <!-- Header & Grade -->
+                        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-800 mb-1">總體評價</h3>
+                                <p id="resSummary" class="text-sm text-slate-600 leading-relaxed max-w-xl"></p>
+                            </div>
+                            <div class="shrink-0 flex flex-col items-center bg-slate-50 p-3 rounded-lg border border-slate-200 min-w-[100px]">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">預估等第</span>
+                                <div id="resGrade" class="text-3xl font-black rounded-lg">A+</div>
+                            </div>
+                        </div>
+
+                        <!-- Scores -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-xs font-bold text-slate-700">專業與產業 (40%)</span>
+                                    <span id="score1" class="text-lg font-bold text-ntsu-700">--</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-2">
+                                    <div id="bar1" class="bg-ntsu-500 h-2 rounded-full transition-all duration-1000 w-0"></div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-xs font-bold text-slate-700">邏輯與結構 (30%)</span>
+                                    <span id="score2" class="text-lg font-bold text-blue-700">--</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-2">
+                                    <div id="bar2" class="bg-blue-500 h-2 rounded-full transition-all duration-1000 w-0"></div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-xs font-bold text-slate-700">視覺與排版 (30%)</span>
+                                    <span id="score3" class="text-lg font-bold text-purple-700">--</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-2">
+                                    <div id="bar3" class="bg-purple-500 h-2 rounded-full transition-all duration-1000 w-0"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Feedback Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Strengths -->
+                            <div class="bg-emerald-50/50 border border-emerald-200 p-4 rounded-xl">
+                                <h4 class="font-bold text-emerald-800 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-thumbs-up text-emerald-600"></i> 優點與亮點
+                                </h4>
+                                <ul id="resStrengths" class="space-y-2 text-sm text-emerald-900/80"></ul>
+                            </div>
+                            <!-- Weaknesses -->
+                            <div class="bg-amber-50/50 border border-amber-200 p-4 rounded-xl">
+                                <h4 class="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                                    <i class="fa-solid fa-magnifying-glass text-amber-600"></i> 觀察與建議
+                                </h4>
+                                <ul id="resWeaknesses" class="space-y-2 text-sm text-amber-900/80"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Action Items -->
+                        <div class="bg-blue-50/50 border border-blue-200 p-4 rounded-xl">
+                            <h4 class="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-person-running text-blue-600"></i> 具體行動方案 (Action Items)
+                            </h4>
+                            <ul id="resActionItems" class="space-y-2 text-sm text-blue-900/80"></ul>
+                        </div>
+                        
+                        <!-- Save to Cloud Button -->
+                        <div class="flex justify-end pt-2">
+                            <button id="saveCloudBtn" onclick="saveToCloud()" class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> 儲存評估結果至雲端
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inline QA Card -->
+            <div id="qaSection" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[350px] opacity-50 pointer-events-none transition-opacity duration-300">
+                <div class="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
+                    <i class="fa-solid fa-comments text-blue-600"></i>
+                    <h2 class="font-bold text-slate-800 text-sm">針對報告提問 (Q&A)</h2>
+                </div>
+                
+                <div id="qaMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
+                    <div class="text-center text-xs text-slate-400 my-4">
+                        評估完成後，您可以在此針對報告內容向 AI 提問。
+                    </div>
+                </div>
+
+                <div class="p-3 bg-white border-t border-slate-100 flex gap-2">
+                    <input type="text" id="qaInput" placeholder="請輸入您的問題..." class="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" onkeypress="if(event.key === 'Enter') sendQAMessage()">
+                    <button onclick="sendQAMessage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="mt-auto py-6 border-t border-slate-200 bg-white text-center">
+         <p class="text-xs text-slate-400 font-medium">©2026 NTSU-COM-CestmoiHYL. All rights reserved.</p>
+    </footer>
+
+    <!-- TONY AI Assistant FAB -->
+    <div id="tonyFabContainer" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <!-- Notification Badge -->
+        <div id="tonyBadge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full absolute -top-2 -right-2 z-10 animate-bounce shadow-sm">!</div>
+        
+        <!-- Chat Window -->
+        <div id="tonyWindow" class="hidden mb-4 bg-white rounded-2xl shadow-2xl border border-slate-200 w-[350px] h-[450px] flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-ntsu-700 to-ntsu-900 text-white p-3 flex justify-between items-center cursor-move" id="tonyHeader">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony&backgroundColor=b6e3f4" alt="Tony" class="w-10 h-10 rounded-full border-2 border-white/50 bg-white">
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-ntsu-800 rounded-full"></div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm">TONY 老師</h3>
+                        <p class="text-[10px] text-ntsu-100">AI 導師・隨時協助</p>
+                    </div>
+                </div>
+                <button onclick="toggleTony()" class="text-white/70 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Chat Area -->
+            <div id="tonyMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+                <!-- Welcome Message -->
+                <div class="flex gap-2">
+                    <div class="w-8 h-8 rounded-full bg-ntsu-100 flex-shrink-0 flex items-center justify-center border border-ntsu-200">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony" alt="Tony" class="w-full h-full rounded-full">
+                    </div>
+                    <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-sm shadow-sm max-w-[80%]">
+                        <p class="text-sm text-slate-700">嗨！我是 TONY 老師 👋<br>準備好讓你的報告更上一層樓了嗎？有任何問題都可以問我喔！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="p-3 bg-white border-t border-slate-100">
+                <div class="flex gap-2 items-center bg-slate-50 border border-slate-300 rounded-full p-1 pr-1.5 focus-within:border-ntsu-500 focus-within:bg-white transition-colors">
+                    <input type="text" id="tonyInput" placeholder="問 TONY 老師..." class="flex-1 bg-transparent px-3 py-1.5 text-sm focus:outline-none" onkeypress="if(event.key === 'Enter') sendTonyMessage()">
+                    <button onclick="sendTonyMessage()" class="w-8 h-8 rounded-full bg-ntsu-600 hover:bg-ntsu-700 text-white flex items-center justify-center transition-colors shrink-0">
+                        <i class="fa-solid fa-arrow-up text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- FAB Button -->
+        <button onclick="toggleTony()" class="w-14 h-14 bg-gradient-to-br from-ntsu-500 to-ntsu-700 hover:from-ntsu-600 hover:to-ntsu-800 text-white rounded-full shadow-xl flex items-center justify-center text-2xl transition-transform hover:scale-110 active:scale-95 group border-2 border-white/20">
+            <i class="fa-solid fa-comment-dots group-hover:animate-pulse"></i>
+        </button>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform transition-all scale-95 opacity-0" id="authModalContent">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-ntsu-100 text-ntsu-700 flex items-center justify-center">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    會員服務
+                </h3>
+                <button onclick="toggleAuthModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-200">
+                <button onclick="switchAuthTab('login')" id="tabBtnLogin" class="flex-1 py-3 text-sm font-bold text-ntsu-800 border-b-2 border-ntsu-700 bg-white transition-colors">登入</button>
+                <button onclick="switchAuthTab('register')" id="tabBtnRegister" class="flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent bg-slate-50 hover:bg-white transition-colors">註冊新帳號</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="window.handleLogin(event)" class="p-6 flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">電子信箱</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="email" id="loginEmail" required class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow" placeholder="your@email.com">
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-semibold text-slate-700">密碼</label>
+                        <button type="button" onclick="toggleForgotModal()" class="text-xs text-ntsu-600 hover:text-ntsu-800 font-semibold hover:underline">忘記密碼？</button>
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="password" id="loginPassword" required class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow" placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit" id="loginBtn" class="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 hover:shadow-lg">
+                    登入系統
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" onsubmit="window.handleRegister(event)" class="p-6 flex-col gap-4 hidden">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">真實姓名</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-id-badge absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="regName" required placeholder="請輸入您的真實姓名" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5 mt-2">電子信箱</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="email" id="regEmail" required placeholder="請輸入有效的電子信箱" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5 mt-2">設定密碼</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="password" id="regPassword" required placeholder="6 位數以上英數字" minlength="6" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow">
+                    </div>
+                </div>
+                
+                <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2.5 items-start shadow-sm">
+                    <i class="fa-solid fa-circle-exclamation text-amber-500 mt-0.5"></i>
+                    <p class="text-xs text-amber-800 leading-relaxed font-medium">溫馨提醒：註冊確認信有時會跑到「垃圾郵件匣」，請記得前往確認唷！</p>
+                </div>
+
+                <button type="submit" id="regBtn" class="w-full mt-2 bg-ntsu-700 hover:bg-ntsu-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 hover:shadow-lg">
+                    建立帳號
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotModal" class="fixed inset-0 z-[70] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4 transform transition-all scale-95 opacity-0" id="forgotModalContent">
+            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2 mb-1">
+                <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                重設密碼
+            </h3>
+            <p class="text-xs text-slate-500 leading-relaxed mb-2">請輸入您註冊時使用的電子信箱，我們將寄送密碼重設連結給您。</p>
+            <form onsubmit="window.handleResetPassword(event)" class="flex flex-col gap-4">
+                <input type="email" id="forgotEmail" required placeholder="輸入電子信箱" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-shadow">
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleForgotModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl transition-colors">取消</button>
+                    <button type="submit" id="resetBtn" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all hover:shadow">發送連結</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden transform transition-all scale-95 opacity-0" id="adminModalContent">
+            <div class="px-6 py-4 bg-slate-800 text-white flex items-center justify-between shrink-0">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-slate-400"></i> 系統管理員 / 會員總覽
+                </h3>
+                <button onclick="toggleAdminModal()" class="text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-auto p-6 bg-slate-50">
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider">
+                                <th class="py-3 px-5 font-bold">使用者名稱</th>
+                                <th class="py-3 px-5 font-bold">電子信箱</th>
+                                <th class="py-3 px-5 font-bold">註冊時間</th>
+                                <th class="py-3 px-5 font-bold text-right">狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="text-sm divide-y divide-slate-100">
+                            <!-- Data populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
+
+    <script>
+        // State Management
+        const state = {
+            uploadedFiles: [], // Array of file objects
+            extractedTexts: [], // Array of text contents
+            evaluationResult: null, // JSON object from AI
+            tonyChatHistory: [],
+            qaChatHistory: [],
+        };
+
+        // --- File Uploader Logic ---
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropZone').classList.add('border-ntsu-500', 'bg-ntsu-50');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropZone').classList.remove('border-ntsu-500', 'bg-ntsu-50');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dropZone').classList.remove('border-ntsu-500', 'bg-ntsu-50');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                processFiles(e.dataTransfer.files);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                processFiles(e.target.files);
+            }
+        }
+
+        function processFiles(files) {
+            const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+            const validTypes = ['.pdf', '.docx', '.pptx', '.ppt'];
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const ext = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (file.size > MAX_SIZE) {
+                    showToast(`檔案 ${file.name} 超過 10MB 限制`, 'error');
+                    continue;
+                }
+                
+                if (!validTypes.includes(ext)) {
+                    showToast(`不支援的檔案格式: ${file.name}`, 'error');
+                    continue;
+                }
+                
+                // Avoid duplicates based on name and size
+                if (!state.uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    state.uploadedFiles.push(file);
+                }
+            }
+            updateFileListUI();
+        }
+
+        function updateFileListUI() {
+            const container = document.getElementById('fileListContainer');
+            const list = document.getElementById('fileList');
+            
+            if (state.uploadedFiles.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            list.innerHTML = '';
+            
+            state.uploadedFiles.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-lg text-sm';
+                
+                let iconClass = 'fa-file text-slate-400';
+                if (file.name.endsWith('.pdf')) iconClass = 'fa-file-pdf text-red-500';
+                else if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) iconClass = 'fa-file-powerpoint text-orange-500';
+                else if (file.name.endsWith('.docx')) iconClass = 'fa-file-word text-blue-500';
+
+                li.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <i class="fa-solid ${iconClass} text-lg shrink-0"></i>
+                        <div class="truncate">
+                            <p class="font-medium text-slate-700 truncate text-xs" title="${file.name}">${file.name}</p>
+                            <p class="text-[10px] text-slate-400">${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                    <button onclick="removeFile(${index})" class="text-slate-400 hover:text-rose-500 p-1 rounded transition-colors shrink-0">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function removeFile(index) {
+            state.uploadedFiles.splice(index, 1);
+            updateFileListUI();
+        }
+
+        function clearAllFiles() {
+            state.uploadedFiles = [];
+            document.getElementById('fileInput').value = '';
+            updateFileListUI();
+        }
+
+        function toggleRubric() {
+            const content = document.getElementById('rubricContent');
+            const icon = document.getElementById('rubricIcon');
+            content.classList.toggle('hidden');
+            icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        // --- File Extraction Logic ---
+        async function extractTextFromFiles() {
+            state.extractedTexts = [];
+            
+            for (const file of state.uploadedFiles) {
+                try {
+                    if (file.name.endsWith('.pdf')) {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                        let text = `--- File: ${file.name} ---\n`;
+                        
+                        // Extract up to 15 pages to save tokens
+                        const maxPages = Math.min(pdf.numPages, 15);
+                        for (let i = 1; i <= maxPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const content = await page.getTextContent();
+                            const pageText = content.items.map(item => item.str).join(' ');
+                            text += `[Page ${i}] ${pageText}\n`;
+                        }
+                        state.extractedTexts.push(text);
+                    } else {
+                        // For non-PDF, we just pass the filename and inform AI
+                        state.extractedTexts.push(`--- File: ${file.name} (Content extraction not supported in browser, evaluate based on file structure/title concept if possible) ---`);
+                    }
+                } catch (e) {
+                    console.error("Error extracting file:", file.name, e);
+                    state.extractedTexts.push(`--- File: ${file.name} (Error reading file) ---`);
+                }
+            }
+        }
+
+        // --- AI API Logic ---
+        const RUBRIC_PROMPT = `
+你是一位國立體育大學休閒產業經營系(NTSU-COM)的專業AI評量導師。
+你的任務是評估學生提交的報告草稿。你必須採用「三明治回饋法」(肯定-建議-鼓勵)，語氣溫和、正向、具建設性，絕對不可使用打擊信心的負面字眼。
+
+請依據以下三個維度進行評分(滿分100，分別佔比40, 30, 30)：
+1. 專業內容與產業鏈結 (40分)：理論基礎、內容深度、與休閒產業實務契合度。
+2. 邏輯結構與推導 (30分)：起承轉合、論點推導邏輯、數據支持。
+3. 視覺呈現與資訊可讀性 (30分)：排版、配色、字體、圖表清晰度 (若僅有文字則評估標題層級與段落)。
+
+回傳格式限制：
+你必須且只能回傳一個合法的 JSON 字串，不可包含 markdown 標記 (如 \`\`\`json)，也不要有額外說明。
+JSON 結構必須完全符合以下格式：
+{
+  "overallGrade": "字串，例如 A+, A, B+, B, C, D",
+  "summary": "字串，2-3句話的總體溫和評價",
+  "scores": {
+    "content": 數字(0-40),
+    "structure": 數字(0-30),
+    "visual": 數字(0-30)
+  },
+  "strengths": ["優點1", "優點2"],
+  "weaknesses": ["觀察建議1", "觀察建議2"],
+  "actionItems": ["具體行動1", "具體行動2"]
+}
+`;
+
+        async function fetchGeminiWithRetry(url, payload, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) return await response.json();
+                
+                if (response.status === 429) {
+                    const waitTime = Math.pow(2, i) * 1000;
+                    console.log(`429 Too Many Requests. Retrying in ${waitTime}ms...`);
+                    await new Promise(r => setTimeout(r, waitTime));
+                } else {
+                    const errText = await response.text();
+                    throw new Error(`API Error ${response.status}: ${errText}`);
+                }
+            }
+            throw new Error("超過最大重試次數 (Max retries reached)");
+        }
+
+        async function startEvaluation() {
+            if (state.uploadedFiles.length === 0) {
+                showToast("請先上傳至少一份報告檔案", 'error');
+                return;
+            }
+            
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                showToast("請輸入 Gemini API Key", 'error');
+                document.getElementById('apiKey').focus();
+                return;
+            }
+
+            const btn = document.getElementById('startEvalBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 處理中...';
+            
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('resultDisplay').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('qaSection').classList.add('opacity-50', 'pointer-events-none');
+            
+            try {
+                // 1. Extract text
+                await extractTextFromFiles();
+                const combinedText = state.extractedTexts.join('\n\n');
+                
+                // 2. Call Gemini for Evaluation
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [
+                            { text: RUBRIC_PROMPT },
+                            { text: "以下是學生的報告內容：\n" + combinedText }
+                        ]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        temperature: 0.2
+                    }
+                };
+
+                const result = await fetchGeminiWithRetry(apiUrl, payload);
+                
+                if (result.candidates && result.candidates[0].content) {
+                    const jsonStr = result.candidates[0].content.parts[0].text;
+                    state.evaluationResult = JSON.parse(jsonStr);
+                    renderDashboard(state.evaluationResult);
+                    
+                    // Notify TONY and enable QA
+                    notifyTony("我剛剛完成了一份報告的評量，您可以點擊查看結果！");
+                    initQAContext();
+                    showToast("評估完成！", 'success');
+                } else {
+                    throw new Error("回傳格式異常");
+                }
+
+            } catch (error) {
+                console.error("Evaluation Error:", error);
+                showToast("評估失敗: " + error.message, 'error');
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-rocket"></i> 重新進行評估';
+            }
+        }
+
+        // --- UI Rendering Logic ---
+        function renderDashboard(data) {
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('resultDisplay').classList.remove('hidden');
+            document.getElementById('resultDisplay').classList.add('flex');
+            
+            // Enable QA
+            document.getElementById('qaSection').classList.remove('opacity-50', 'pointer-events-none');
+            
+            document.getElementById('evalStatus').innerHTML = '<i class="fa-solid fa-check-circle text-ntsu-600"></i> 評估完成';
+            document.getElementById('evalStatus').className = "text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200";
+
+            document.getElementById('resSummary').innerText = data.summary;
+            
+            const gradeEl = document.getElementById('resGrade');
+            gradeEl.innerText = data.overallGrade;
+            // Color based on grade
+            if(data.overallGrade.includes('A')) gradeEl.className = "text-3xl font-black rounded-lg text-emerald-600";
+            else if(data.overallGrade.includes('B')) gradeEl.className = "text-3xl font-black rounded-lg text-blue-600";
+            else gradeEl.className = "text-3xl font-black rounded-lg text-amber-500";
+
+            // Scores
+            document.getElementById('score1').innerText = data.scores.content + '/40';
+            document.getElementById('score2').innerText = data.scores.structure + '/30';
+            document.getElementById('score3').innerText = data.scores.visual + '/30';
+            
+            // Animate bars
+            setTimeout(() => {
+                document.getElementById('bar1').style.width = (data.scores.content / 40 * 100) + '%';
+                document.getElementById('bar2').style.width = (data.scores.structure / 30 * 100) + '%';
+                document.getElementById('bar3').style.width = (data.scores.visual / 30 * 100) + '%';
+            }, 100);
+
+            // Lists
+            document.getElementById('resStrengths').innerHTML = data.strengths.map(s => `<li><i class="fa-solid fa-check mr-2 opacity-50"></i>${s}</li>`).join('');
+            document.getElementById('resWeaknesses').innerHTML = data.weaknesses.map(w => `<li><i class="fa-solid fa-eye mr-2 opacity-50"></i>${w}</li>`).join('');
+            document.getElementById('resActionItems').innerHTML = data.actionItems.map(a => `<li><i class="fa-solid fa-arrow-right mr-2 opacity-50"></i>${a}</li>`).join('');
+        }
+
+        function loadSampleReport() {
+            // Mock a file upload
+            const mockFile = new File(["This is a mock presentation about sustainable tourism in Taiwan. It lacks data charts but has good structure."], "休閒農業發展簡報.pptx", {type: "application/vnd.openxmlformats-officedocument.presentationml.presentation"});
+            state.uploadedFiles = [mockFile];
+            updateFileListUI();
+            
+            // Auto fill API key if empty for demo purposes (Normally don't do this)
+            if(!document.getElementById('apiKey').value) {
+                 showToast("已載入範例報告。請輸入您的 API Key 來測試。", "info");
+            }
+        }
+
+        // --- Inline QA Logic ---
+        function initQAContext() {
+            state.qaChatHistory = [
+                {
+                    role: "user",
+                    parts: [{ text: `我剛剛提交了一份報告，你的評估結果如下(JSON): ${JSON.stringify(state.evaluationResult)}。請扮演導師，根據此報告內容回答我接下來的問題。` }]
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "好的，我已經了解這份報告的評量結果。針對這份報告，你有什麼想進一步討論或不清楚的地方嗎？" }]
+                }
+            ];
+            
+            const messagesDiv = document.getElementById('qaMessages');
+            messagesDiv.innerHTML = '';
+            appendMessageToUI(messagesDiv, 'model', '好的，我已經了解這份報告的評量結果。針對這份報告，你有什麼想進一步討論或不清楚的地方嗎？');
+        }
+
+        async function sendQAMessage() {
+            const input = document.getElementById('qaInput');
+            const text = input.value.trim();
+            const apiKey = document.getElementById('apiKey').value;
+            
+            if (!text || !apiKey) {
+                if(!apiKey) showToast("API Key 遺失，無法發送", "error");
+                return;
+            }
+            
+            input.value = '';
+            const messagesDiv = document.getElementById('qaMessages');
+            
+            appendMessageToUI(messagesDiv, 'user', text);
+            state.qaChatHistory.push({ role: "user", parts: [{ text }] });
+            
+            // Show loading
+            const loadingId = 'loading-' + Date.now();
+            appendMessageToUI(messagesDiv, 'model', '<i class="fa-solid fa-ellipsis hover:animate-ping"></i>思考中...', loadingId);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+                const payload = { contents: state.qaChatHistory };
+                
+                const result = await fetchGeminiWithRetry(apiUrl, payload);
+                const replyText = result.candidates[0].content.parts[0].text;
+                
+                document.getElementById(loadingId).remove();
+                appendMessageToUI(messagesDiv, 'model', marked.parse(replyText));
+                
+                state.qaChatHistory.push({ role: "model", parts: [{ text: replyText }] });
+                
+            } catch (error) {
+                document.getElementById(loadingId).innerText = "抱歉，連線發生錯誤。";
+                document.getElementById(loadingId).classList.add('text-rose-500');
+            }
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // --- TONY FAB Logic ---
+        function toggleTony() {
+            const win = document.getElementById('tonyWindow');
+            const badge = document.getElementById('tonyBadge');
+            
+            if (win.classList.contains('hidden')) {
+                win.classList.remove('hidden');
+                // Allow animation rendering
+                setTimeout(() => {
+                    win.classList.remove('scale-y-0', 'opacity-0');
+                    win.classList.add('scale-y-100', 'opacity-100');
+                }, 10);
+                badge.classList.add('hidden');
+            } else {
+                win.classList.remove('scale-y-100', 'opacity-100');
+                win.classList.add('scale-y-0', 'opacity-0');
+                setTimeout(() => {
+                    win.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        function notifyTony(msg) {
+            const badge = document.getElementById('tonyBadge');
+            if (document.getElementById('tonyWindow').classList.contains('hidden')) {
+                badge.classList.remove('hidden');
+            }
+            const msgDiv = document.getElementById('tonyMessages');
+            appendTonyMessage('model', msg);
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        }
+
+        async function sendTonyMessage() {
+            const input = document.getElementById('tonyInput');
+            const text = input.value.trim();
+            const apiKey = document.getElementById('apiKey').value;
+            
+            if (!text) return;
+            if (!apiKey) {
+                showToast("請在左側面板輸入 API Key", "error");
+                return;
+            }
+            
+            input.value = '';
+            appendTonyMessage('user', text);
+            
+            // Build context for Tony
+            if (state.tonyChatHistory.length === 0) {
+                 state.tonyChatHistory.push({
+                    role: "user",
+                    parts: [{ text: "系統提示: 你是 TONY 老師，國立體育大學休閒產業經營系的AI導師。你幽默、熱情、正向。請簡短回覆學生。" }]
+                 });
+                 state.tonyChatHistory.push({
+                    role: "model",
+                    parts: [{ text: "沒問題！我是 TONY 老師，隨時為大家解答休產系與報告撰寫的疑難雜症！" }]
+                 });
+            }
+            
+            state.tonyChatHistory.push({ role: "user", parts: [{ text }] });
+            
+            const msgDiv = document.getElementById('tonyMessages');
+            const loadingId = 'tony-loading-' + Date.now();
+            appendTonyMessage('model', '<span class="flex gap-1 items-center h-4"><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></span>', loadingId);
+            
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+                const payload = { contents: state.tonyChatHistory };
+                
+                const result = await fetchGeminiWithRetry(apiUrl, payload);
+                const replyText = result.candidates[0].content.parts[0].text;
+                
+                document.getElementById(loadingId).closest('.flex').remove();
+                appendTonyMessage('model', marked.parse(replyText));
+                
+                state.tonyChatHistory.push({ role: "model", parts: [{ text: replyText }] });
+                
+            } catch (error) {
+                document.getElementById(loadingId).innerText = "連線異常，請稍後再試。";
+            }
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        }
+
+        function appendTonyMessage(role, htmlContent, id = null) {
+            const div = document.getElementById('tonyMessages');
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex gap-2 ${role === 'user' ? 'flex-row-reverse' : ''}`;
+            
+            let avatar = '';
+            if(role === 'model'){
+                avatar = `<div class="w-8 h-8 rounded-full bg-ntsu-100 flex-shrink-0 flex items-center justify-center border border-ntsu-200 mt-1">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony" alt="Tony" class="w-full h-full rounded-full">
+                          </div>`;
+            }
+
+            const bgClass = role === 'user' ? 'bg-ntsu-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm';
+            
+            wrapper.innerHTML = `
+                ${avatar}
+                <div class="${bgClass} p-3 rounded-2xl shadow-sm max-w-[80%] markdown-body text-sm" ${id ? `id="${id}"` : ''}>
+                    ${htmlContent}
+                </div>
+            `;
+            div.appendChild(wrapper);
+            div.scrollTop = div.scrollHeight;
+        }
+
+        // Generic Helper
+        function appendMessageToUI(container, role, htmlContent, id = null) {
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-xl text-sm w-fit max-w-[85%] ${
+                role === 'user' ? 'bg-blue-100 text-blue-900 ml-auto rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm markdown-body'
+            }`;
+            if (id) div.id = id;
+            div.innerHTML = htmlContent;
+            container.appendChild(div);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let colorClasses = 'bg-slate-800 text-white';
+            let icon = 'fa-info-circle text-blue-400';
+            if (type === 'error') { colorClasses = 'bg-rose-50 border border-rose-200 text-rose-800'; icon = 'fa-circle-xmark text-rose-500'; }
+            else if (type === 'success') { colorClasses = 'bg-emerald-50 border border-emerald-200 text-emerald-800'; icon = 'fa-circle-check text-emerald-500'; }
+            
+            toast.className = `${colorClasses} px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm transform transition-all translate-x-full opacity-0 duration-300`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Slide in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full', 'opacity-0');
+            });
+            
+            // Remove after 3s
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Modal Helpers (with transitions)
+        function openModal(id, contentId) {
+            const modal = document.getElementById(id);
+            const content = document.getElementById(contentId);
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+            });
+        }
+
+        function closeModal(id, contentId) {
+            const modal = document.getElementById(id);
+            const content = document.getElementById(contentId);
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function toggleAuthModal() {
+            const modal = document.getElementById('authModal');
+            if(modal.classList.contains('hidden')){
+                openModal('authModal', 'authModalContent');
+            } else {
+                closeModal('authModal', 'authModalContent');
+            }
+        }
+        
+        function toggleForgotModal() {
+            closeModal('authModal', 'authModalContent');
+            const modal = document.getElementById('forgotModal');
+            if(modal.classList.contains('hidden')){
+                setTimeout(() => openModal('forgotModal', 'forgotModalContent'), 200);
+            } else {
+                closeModal('forgotModal', 'forgotModalContent');
+            }
+        }
+
+        function toggleAdminModal() {
+            const modal = document.getElementById('adminModal');
+            if(modal.classList.contains('hidden')){
+                openModal('adminModal', 'adminModalContent');
+                if(window.loadAdminData) window.loadAdminData();
+            } else {
+                closeModal('adminModal', 'adminModalContent');
+            }
+        }
+
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const tabBtnLogin = document.getElementById('tabBtnLogin');
+            const tabBtnRegister = document.getElementById('tabBtnRegister');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                loginForm.classList.add('flex');
+                registerForm.classList.add('hidden');
+                registerForm.classList.remove('flex');
+                
+                tabBtnLogin.className = "flex-1 py-3 text-sm font-bold text-ntsu-800 border-b-2 border-ntsu-700 bg-white transition-colors";
+                tabBtnRegister.className = "flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent bg-slate-50 hover:bg-white transition-colors";
+            } else {
+                registerForm.classList.remove('hidden');
+                registerForm.classList.add('flex');
+                loginForm.classList.add('hidden');
+                loginForm.classList.remove('flex');
+                
+                tabBtnRegister.className = "flex-1 py-3 text-sm font-bold text-ntsu-800 border-b-2 border-ntsu-700 bg-white transition-colors";
+                tabBtnLogin.className = "flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent bg-slate-50 hover:bg-white transition-colors";
+            }
+        }
+
+        // TONY Drag logic
+        const tonyHeader = document.getElementById('tonyHeader');
+        const tonyWindow = document.getElementById('tonyWindow');
+        let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+
+        tonyHeader.addEventListener("mousedown", dragStart);
+        document.addEventListener("mouseup", dragEnd);
+        document.addEventListener("mousemove", drag);
+
+        function dragStart(e) {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            if (e.target === tonyHeader || tonyHeader.contains(e.target)) isDragging = true;
+        }
+
+        function dragEnd() {
+            initialX = currentX; initialY = currentY; isDragging = false;
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX; currentY = e.clientY - initialY;
+                xOffset = currentX; yOffset = currentY;
+                setTranslate(currentX, currentY, tonyWindow);
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) { el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`; }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendEmailVerification, sendPasswordResetEmail, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKBVbfdMvNgM02K4yP-PjbwZNSRTzm3Bo",
+            authDomain: "score-ranking-819e5.firebaseapp.com",
+            projectId: "score-ranking-819e5",
+            storageBucket: "score-ranking-819e5.firebasestorage.app",
+            messagingSenderId: "680956314830",
+            appId: "1:680956314830:web:0df049f2c69834c25a7c9f"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUser = null;
+        const APP_ID = 'ntsu-report-evaluator';
+
+        async function initFirebase() {
+            try {
+                if (!auth.currentUser) await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+            }
+        }
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                if (!user.isAnonymous) {
+                    document.getElementById('loginHeaderBtn').classList.add('hidden');
+                    document.getElementById('userHeaderInfo').classList.remove('hidden');
+                    document.getElementById('userHeaderInfo').classList.add('flex');
+                    document.getElementById('headerUserName').innerText = user.displayName || user.email.split('@')[0];
+                } else {
+                    document.getElementById('loginHeaderBtn').classList.remove('hidden');
+                    document.getElementById('userHeaderInfo').classList.add('hidden');
+                    document.getElementById('userHeaderInfo').classList.remove('flex');
+                }
+            } else {
+                currentUser = null;
+                document.getElementById('loginHeaderBtn').classList.remove('hidden');
+                document.getElementById('userHeaderInfo').classList.add('hidden');
+                document.getElementById('userHeaderInfo').classList.remove('flex');
+            }
+        });
+
+        initFirebase();
+
+        window.handleRegister = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const btn = document.getElementById('regBtn');
+            
+            try {
+                btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 處理中...';
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                
+                await updateProfile(user, { displayName: name });
+                await sendEmailVerification(user);
+                
+                const userRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'profiles', user.uid);
+                await setDoc(userRef, { name, email, createdAt: Date.now() });
+                
+                showToast('註冊成功！請至信箱收取確認信。', 'success');
+                toggleAuthModal();
+                document.getElementById('registerForm').reset();
+            } catch(err) {
+                showToast('註冊失敗：' + err.message, 'error');
+            } finally {
+                btn.disabled = false; btn.innerHTML = '建立帳號';
+            }
+        };
+
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            
+            try {
+                btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 登入中...';
+                await signInWithEmailAndPassword(auth, email, password);
+                showToast('登入成功', 'success');
+                toggleAuthModal();
+                document.getElementById('loginForm').reset();
+            } catch(err) {
+                showToast('登入失敗，請檢查帳號密碼', 'error');
+            } finally {
+                btn.disabled = false; btn.innerHTML = '登入系統';
+            }
+        };
+
+        window.handleLogout = async () => {
+            try {
+                await signOut(auth);
+                await signInAnonymously(auth);
+                showToast('您已成功登出', 'info');
+            } catch (error) {
+                showToast('登出錯誤', 'error');
+            }
+        };
+
+        window.handleResetPassword = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            const btn = document.getElementById('resetBtn');
+            
+            try {
+                btn.disabled = true; btn.innerText = '發送中...';
+                await sendPasswordResetEmail(auth, email);
+                showToast('密碼重設信已寄出', 'success');
+                toggleForgotModal();
+                document.getElementById('forgotEmail').value = '';
+            } catch(err) {
+                showToast('發送失敗：' + err.message, 'error');
+            } finally {
+                btn.disabled = false; btn.innerText = '發送連結';
+            }
+        };
+
+        window.loadAdminData = async () => {
+            const tbody = document.getElementById('adminTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">載入資料中...</p></td></tr>';
+            try {
+                const profilesRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'profiles');
+                const snapshot = await getDocs(profilesRef);
+                const users = snapshot.docs.map(d => d.data()).sort((a, b) => b.createdAt - a.createdAt);
+                
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">尚無會員資料</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = users.map(u => `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="py-3 px-5 text-slate-800 font-medium">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs text-slate-500">${u.name ? u.name.charAt(0) : '?'}</div>
+                                ${u.name || '未提供'}
+                            </div>
+                        </td>
+                        <td class="py-3 px-5 text-slate-600">${u.email}</td>
+                        <td class="py-3 px-5 text-slate-500 text-xs">${new Date(u.createdAt).toLocaleString('zh-TW')}</td>
+                        <td class="py-3 px-5 text-right"><span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-1 rounded-full font-bold">啟用</span></td>
+                    </tr>
+                `).join('');
+                
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-rose-500">載入失敗：${err.message}</td></tr>`;
+            }
+        };
+
+        window.saveToCloud = async function() {
+            if (!currentUser || currentUser.isAnonymous) {
+                showToast('請先「登入系統」才能儲存至雲端', 'error');
+                toggleAuthModal();
+                return;
+            }
+            if (!state.evaluationResult) return;
+
+            const btn = document.getElementById('saveCloudBtn');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...';
+
+            try {
+                const evalRef = collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'evaluations');
+                await addDoc(evalRef, {
+                    timestamp: Date.now(),
+                    grade: state.evaluationResult.overallGrade,
+                    summary: state.evaluationResult.summary,
+                    scores: state.evaluationResult.scores,
+                    filesInfo: state.uploadedFiles.map(f => ({ name: f.name, size: f.size }))
+                });
+                showToast('評估結果已儲存至雲端！', 'success');
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> 已儲存';
+                btn.classList.replace('bg-slate-800', 'bg-emerald-600');
+                btn.classList.replace('hover:bg-slate-900', 'hover:bg-emerald-700');
+            } catch (error) {
+                showToast('儲存失敗：' + error.message, 'error');
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 重試儲存';
+            }
+        };
+    </script>
+</body>
+</html>
