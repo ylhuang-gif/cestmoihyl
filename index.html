@@ -41,11 +41,9 @@
                 }
             }
         }
-        // Set worker src for pdf.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     </script>
     <style>
-        /* Custom scrollbar for inner content */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -321,27 +319,24 @@
         </div>
     </main>
     
-    <!-- Footer -->
     <footer class="mt-auto py-6 border-t border-slate-200 bg-white text-center">
          <p class="text-xs text-slate-400 font-medium">©2026 NTSU-COM-CestmoiHYL. All rights reserved.</p>
     </footer>
 
-    <!-- TONY AI Assistant FAB -->
+    <!-- Bonjour AI Assistant FAB -->
     <div id="tonyFabContainer" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        <!-- Notification Badge -->
         <div id="tonyBadge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full absolute -top-2 -right-2 z-10 animate-bounce shadow-sm">!</div>
         
-        <!-- Chat Window -->
         <div id="tonyWindow" class="hidden mb-4 bg-white rounded-2xl shadow-2xl border border-slate-200 w-[350px] h-[450px] flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right">
             <!-- Header -->
             <div class="bg-gradient-to-r from-ntsu-700 to-ntsu-900 text-white p-3 flex justify-between items-center cursor-move" id="tonyHeader">
                 <div class="flex items-center gap-3">
                     <div class="relative">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony&backgroundColor=b6e3f4" alt="Tony" class="w-10 h-10 rounded-full border-2 border-white/50 bg-white">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bonjour&backgroundColor=b6e3f4" alt="Bonjour" class="w-10 h-10 rounded-full border-2 border-white/50 bg-white">
                         <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-ntsu-800 rounded-full"></div>
                     </div>
                     <div>
-                        <h3 class="font-bold text-sm">TONY 老師</h3>
+                        <h3 class="font-bold text-sm">Bonjour 老師</h3>
                         <p class="text-[10px] text-ntsu-100">AI 導師・隨時協助</p>
                     </div>
                 </div>
@@ -352,13 +347,12 @@
             
             <!-- Chat Area -->
             <div id="tonyMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-                <!-- Welcome Message -->
                 <div class="flex gap-2">
                     <div class="w-8 h-8 rounded-full bg-ntsu-100 flex-shrink-0 flex items-center justify-center border border-ntsu-200">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony" alt="Tony" class="w-full h-full rounded-full">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bonjour" alt="Bonjour" class="w-full h-full rounded-full">
                     </div>
                     <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-sm shadow-sm max-w-[80%]">
-                        <p class="text-sm text-slate-700">嗨！我是 TONY 老師 👋<br>準備好讓你的報告更上一層樓了嗎？有任何問題都可以問我喔！</p>
+                        <p class="text-sm text-slate-700">嗨！我是 Bonjour 老師 👋<br>準備好讓你的報告更上一層樓了嗎？有任何問題都可以問我喔！</p>
                     </div>
                 </div>
             </div>
@@ -366,7 +360,7 @@
             <!-- Input Area -->
             <div class="p-3 bg-white border-t border-slate-100">
                 <div class="flex gap-2 items-center bg-slate-50 border border-slate-300 rounded-full p-1 pr-1.5 focus-within:border-ntsu-500 focus-within:bg-white transition-colors">
-                    <input type="text" id="tonyInput" placeholder="問 TONY 老師..." class="flex-1 bg-transparent px-3 py-1.5 text-sm focus:outline-none" onkeypress="if(event.key === 'Enter') sendTonyMessage()">
+                    <input type="text" id="tonyInput" placeholder="問 Bonjour 老師..." class="flex-1 bg-transparent px-3 py-1.5 text-sm focus:outline-none" onkeypress="if(event.key === 'Enter') sendTonyMessage()">
                     <button onclick="sendTonyMessage()" class="w-8 h-8 rounded-full bg-ntsu-600 hover:bg-ntsu-700 text-white flex items-center justify-center transition-colors shrink-0">
                         <i class="fa-solid fa-arrow-up text-sm"></i>
                     </button>
@@ -383,7 +377,6 @@
     <!-- Auth Modal -->
     <div id="authModal" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform transition-all scale-95 opacity-0" id="authModalContent">
-            <!-- Header -->
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-ntsu-100 text-ntsu-700 flex items-center justify-center">
@@ -396,7 +389,6 @@
                 </button>
             </div>
             
-            <!-- Tabs -->
             <div class="flex border-b border-slate-200">
                 <button onclick="switchAuthTab('login')" id="tabBtnLogin" class="flex-1 py-3 text-sm font-bold text-ntsu-800 border-b-2 border-ntsu-700 bg-white transition-colors">登入</button>
                 <button onclick="switchAuthTab('register')" id="tabBtnRegister" class="flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent bg-slate-50 hover:bg-white transition-colors">註冊新帳號</button>
@@ -506,7 +498,6 @@
                             </tr>
                         </thead>
                         <tbody id="adminTableBody" class="text-sm divide-y divide-slate-100">
-                            <!-- Data populated by JS -->
                         </tbody>
                     </table>
                 </div>
@@ -514,20 +505,17 @@
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
 
     <script>
-        // State Management
         const state = {
-            uploadedFiles: [], // Array of file objects
-            extractedTexts: [], // Array of text contents
-            evaluationResult: null, // JSON object from AI
+            uploadedFiles: [],
+            extractedTexts: [],
+            evaluationResult: null,
             tonyChatHistory: [],
             qaChatHistory: [],
         };
 
-        // --- File Uploader Logic ---
         function handleDragOver(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -556,7 +544,7 @@
         }
 
         function processFiles(files) {
-            const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+            const MAX_SIZE = 10 * 1024 * 1024;
             const validTypes = ['.pdf', '.docx', '.pptx', '.ppt'];
             
             for (let i = 0; i < files.length; i++) {
@@ -573,7 +561,6 @@
                     continue;
                 }
                 
-                // Avoid duplicates based on name and size
                 if (!state.uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
                     state.uploadedFiles.push(file);
                 }
@@ -636,7 +623,6 @@
             icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
         }
 
-        // --- File Extraction Logic ---
         async function extractTextFromFiles() {
             state.extractedTexts = [];
             
@@ -647,7 +633,6 @@
                         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                         let text = `--- File: ${file.name} ---\n`;
                         
-                        // Extract up to 15 pages to save tokens
                         const maxPages = Math.min(pdf.numPages, 15);
                         for (let i = 1; i <= maxPages; i++) {
                             const page = await pdf.getPage(i);
@@ -657,7 +642,6 @@
                         }
                         state.extractedTexts.push(text);
                     } else {
-                        // For non-PDF, we just pass the filename and inform AI
                         state.extractedTexts.push(`--- File: ${file.name} (Content extraction not supported in browser, evaluate based on file structure/title concept if possible) ---`);
                     }
                 } catch (e) {
@@ -667,7 +651,6 @@
             }
         }
 
-        // --- AI API Logic ---
         const RUBRIC_PROMPT = `
 你是一位國立體育大學休閒產業經營系(NTSU-COM)的專業AI評量導師。
 你的任務是評估學生提交的報告草稿。你必須採用「三明治回饋法」(肯定-建議-鼓勵)，語氣溫和、正向、具建設性，絕對不可使用打擊信心的負面字眼。
@@ -739,11 +722,9 @@ JSON 結構必須完全符合以下格式：
             document.getElementById('qaSection').classList.add('opacity-50', 'pointer-events-none');
             
             try {
-                // 1. Extract text
                 await extractTextFromFiles();
                 const combinedText = state.extractedTexts.join('\n\n');
                 
-                // 2. Call Gemini for Evaluation
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
                 
                 const payload = {
@@ -767,7 +748,6 @@ JSON 結構必須完全符合以下格式：
                     state.evaluationResult = JSON.parse(jsonStr);
                     renderDashboard(state.evaluationResult);
                     
-                    // Notify TONY and enable QA
                     notifyTony("我剛剛完成了一份報告的評量，您可以點擊查看結果！");
                     initQAContext();
                     showToast("評估完成！", 'success');
@@ -786,13 +766,11 @@ JSON 結構必須完全符合以下格式：
             }
         }
 
-        // --- UI Rendering Logic ---
         function renderDashboard(data) {
             document.getElementById('loadingState').classList.add('hidden');
             document.getElementById('resultDisplay').classList.remove('hidden');
             document.getElementById('resultDisplay').classList.add('flex');
             
-            // Enable QA
             document.getElementById('qaSection').classList.remove('opacity-50', 'pointer-events-none');
             
             document.getElementById('evalStatus').innerHTML = '<i class="fa-solid fa-check-circle text-ntsu-600"></i> 評估完成';
@@ -802,42 +780,35 @@ JSON 結構必須完全符合以下格式：
             
             const gradeEl = document.getElementById('resGrade');
             gradeEl.innerText = data.overallGrade;
-            // Color based on grade
             if(data.overallGrade.includes('A')) gradeEl.className = "text-3xl font-black rounded-lg text-emerald-600";
             else if(data.overallGrade.includes('B')) gradeEl.className = "text-3xl font-black rounded-lg text-blue-600";
             else gradeEl.className = "text-3xl font-black rounded-lg text-amber-500";
 
-            // Scores
             document.getElementById('score1').innerText = data.scores.content + '/40';
             document.getElementById('score2').innerText = data.scores.structure + '/30';
             document.getElementById('score3').innerText = data.scores.visual + '/30';
             
-            // Animate bars
             setTimeout(() => {
                 document.getElementById('bar1').style.width = (data.scores.content / 40 * 100) + '%';
                 document.getElementById('bar2').style.width = (data.scores.structure / 30 * 100) + '%';
                 document.getElementById('bar3').style.width = (data.scores.visual / 30 * 100) + '%';
             }, 100);
 
-            // Lists
             document.getElementById('resStrengths').innerHTML = data.strengths.map(s => `<li><i class="fa-solid fa-check mr-2 opacity-50"></i>${s}</li>`).join('');
             document.getElementById('resWeaknesses').innerHTML = data.weaknesses.map(w => `<li><i class="fa-solid fa-eye mr-2 opacity-50"></i>${w}</li>`).join('');
             document.getElementById('resActionItems').innerHTML = data.actionItems.map(a => `<li><i class="fa-solid fa-arrow-right mr-2 opacity-50"></i>${a}</li>`).join('');
         }
 
         function loadSampleReport() {
-            // Mock a file upload
             const mockFile = new File(["This is a mock presentation about sustainable tourism in Taiwan. It lacks data charts but has good structure."], "休閒農業發展簡報.pptx", {type: "application/vnd.openxmlformats-officedocument.presentationml.presentation"});
             state.uploadedFiles = [mockFile];
             updateFileListUI();
             
-            // Auto fill API key if empty for demo purposes (Normally don't do this)
             if(!document.getElementById('apiKey').value) {
                  showToast("已載入範例報告。請輸入您的 API Key 來測試。", "info");
             }
         }
 
-        // --- Inline QA Logic ---
         function initQAContext() {
             state.qaChatHistory = [
                 {
@@ -871,7 +842,6 @@ JSON 結構必須完全符合以下格式：
             appendMessageToUI(messagesDiv, 'user', text);
             state.qaChatHistory.push({ role: "user", parts: [{ text }] });
             
-            // Show loading
             const loadingId = 'loading-' + Date.now();
             appendMessageToUI(messagesDiv, 'model', '<i class="fa-solid fa-ellipsis hover:animate-ping"></i>思考中...', loadingId);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -895,14 +865,12 @@ JSON 結構必須完全符合以下格式：
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // --- TONY FAB Logic ---
         function toggleTony() {
             const win = document.getElementById('tonyWindow');
             const badge = document.getElementById('tonyBadge');
             
             if (win.classList.contains('hidden')) {
                 win.classList.remove('hidden');
-                // Allow animation rendering
                 setTimeout(() => {
                     win.classList.remove('scale-y-0', 'opacity-0');
                     win.classList.add('scale-y-100', 'opacity-100');
@@ -941,15 +909,14 @@ JSON 結構必須完全符合以下格式：
             input.value = '';
             appendTonyMessage('user', text);
             
-            // Build context for Tony
             if (state.tonyChatHistory.length === 0) {
                  state.tonyChatHistory.push({
                     role: "user",
-                    parts: [{ text: "系統提示: 你是 TONY 老師，國立體育大學休閒產業經營系的AI導師。你幽默、熱情、正向。請簡短回覆學生。" }]
+                    parts: [{ text: "系統提示: 你是 Bonjour 老師，國立體育大學休閒產業經營系的AI導師。你幽默、熱情、正向。請簡短回覆學生。" }]
                  });
                  state.tonyChatHistory.push({
                     role: "model",
-                    parts: [{ text: "沒問題！我是 TONY 老師，隨時為大家解答休產系與報告撰寫的疑難雜症！" }]
+                    parts: [{ text: "沒問題！我是 Bonjour 老師，隨時為大家解答休產系與報告撰寫的疑難雜症！" }]
                  });
             }
             
@@ -985,7 +952,7 @@ JSON 結構必須完全符合以下格式：
             let avatar = '';
             if(role === 'model'){
                 avatar = `<div class="w-8 h-8 rounded-full bg-ntsu-100 flex-shrink-0 flex items-center justify-center border border-ntsu-200 mt-1">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony" alt="Tony" class="w-full h-full rounded-full">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bonjour" alt="Bonjour" class="w-full h-full rounded-full">
                           </div>`;
             }
 
@@ -1001,7 +968,6 @@ JSON 結構必須完全符合以下格式：
             div.scrollTop = div.scrollHeight;
         }
 
-        // Generic Helper
         function appendMessageToUI(container, role, htmlContent, id = null) {
             const div = document.createElement('div');
             div.className = `p-3 rounded-xl text-sm w-fit max-w-[85%] ${
@@ -1026,19 +992,16 @@ JSON 結構必須完全符合以下格式：
             
             container.appendChild(toast);
             
-            // Slide in
             requestAnimationFrame(() => {
                 toast.classList.remove('translate-x-full', 'opacity-0');
             });
             
-            // Remove after 3s
             setTimeout(() => {
                 toast.classList.add('translate-x-full', 'opacity-0');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
 
-        // Modal Helpers (with transitions)
         function openModal(id, contentId) {
             const modal = document.getElementById(id);
             const content = document.getElementById(contentId);
@@ -1111,7 +1074,6 @@ JSON 結構必須完全符合以下格式：
             }
         }
 
-        // TONY Drag logic
         const tonyHeader = document.getElementById('tonyHeader');
         const tonyWindow = document.getElementById('tonyWindow');
         let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
