@@ -1,1297 +1,1250 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="scroll-smooth">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>報告評量 | NTSU-COM</title>
+    <title>researchAsst | 教育研究趨勢探勘工具</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    
+    <!-- Marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Firebase SDK Modular Import -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // User's provided Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOt4gd8kjYw_H_8yEKy_aenIoKLlvma5k",
+            authDomain: "researchasst-46042.firebaseapp.com",
+            projectId: "researchasst-46042",
+            storageBucket: "researchasst-46042.firebasestorage.app",
+            messagingSenderId: "168580067921",
+            appId: "1:168580067921:web:6e2cc48715004d7541fe70",
+            measurementId: "G-P10QT4WJEQ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Global Firebase state references
+        window.firebaseDb = db;
+        window.firebaseAuth = auth;
+        window.currentUser = null;
+
+        // Firebase Auth Methods attached to window for global access
+        window.fbCreateUser = createUserWithEmailAndPassword;
+        window.fbSignIn = signInWithEmailAndPassword;
+        window.fbSignOut = signOut;
+        window.fbResetPassword = sendPasswordResetEmail;
+        window.fbGoogleProvider = new GoogleAuthProvider();
+        window.fbSignInWithPopup = signInWithPopup;
+        window.fbSetDoc = setDoc;
+        window.fbDoc = doc;
+        window.fbCollection = collection;
+        window.fbGetDocs = getDocs;
+
+        // Listen for authentication state changes
+        onAuthStateChanged(auth, (user) => {
+            window.currentUser = user;
+            if (user) {
+                console.log("Firebase Authenticated UID:", user.uid);
+                document.getElementById('btnLoginNav').classList.add('hidden');
+                document.getElementById('userMenu').classList.remove('hidden');
+                
+                const displayName = user.displayName || (user.email ? user.email.split('@')[0] : '使用者');
+                document.getElementById('navUserName').innerText = displayName;
+                
+                // 登入即為正式會員
+                document.getElementById('btnAdmin').classList.remove('hidden');
+            } else {
+                console.log("User signed out");
+                document.getElementById('btnLoginNav').classList.remove('hidden');
+                document.getElementById('userMenu').classList.add('hidden');
+                document.getElementById('btnAdmin').classList.add('hidden');
+            }
+        });
+    </script>
+
+    <!-- Google Fonts: Inter for UI, Merriweather for academic text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'Microsoft JhengHei', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
                     },
                     colors: {
-                        ntsu: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                            800: '#166534',
-                            900: '#14532d',
-                        }
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
-                        'slide-up': 'slideUp 0.3s ease-out forwards',
-                    },
-                    keyframes: {
-                        slideUp: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5', // Primary
+                            700: '#4338ca',
+                        },
+                        magic: {
+                            500: '#8b5cf6', // Secondary
+                            600: '#7c3aed',
                         }
                     }
                 }
             }
         }
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
     </script>
     <style>
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Markdown Styles for Synthesis Report */
+        .prose h1 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 1rem; color: #0f172a; }
+        .prose h2 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.75rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #334155; }
+        .prose p { margin-bottom: 1rem; line-height: 1.7; color: #334155; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose li { margin-bottom: 0.25rem; line-height: 1.6; color: #334155; }
+        .prose strong { color: #0f172a; font-weight: 600; }
+        .prose blockquote { border-left: 4px solid #e2e8f0; padding-left: 1rem; color: #64748b; font-style: italic; margin-bottom: 1rem; }
         
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        /* Spinner animation */
+        .loader {
+            border: 3px solid #f3f3f3; border-top: 3px solid #4f46e5; border-radius: 50%;
+            width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle;
         }
-        
-        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 600; margin-top: 1em; margin-bottom: 0.5em; color: #1f2937; }
-        .markdown-body p { margin-bottom: 1em; line-height: 1.6; color: #4b5563; }
-        .markdown-body ul, .markdown-body ol { margin-left: 1.5em; margin-bottom: 1em; color: #4b5563; }
-        .markdown-body li { margin-bottom: 0.25em; }
-        .markdown-body strong { color: #111827; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-ntsu-200">
+<body class="bg-slate-50 text-slate-900 flex flex-col min-h-screen font-sans antialiased">
 
-    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-ntsu-600 to-ntsu-800 rounded-xl flex items-center justify-center text-white shadow-lg">
-                    <i class="fa-solid fa-graduation-cap text-lg"></i>
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 text-brand-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <span class="font-bold text-xl text-slate-900 tracking-tight cursor-pointer" onclick="toggleAdminView(false)">research<span class="text-brand-600">Asst</span></span>
                 </div>
-                <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">報告評量系統</h1>
-                    <p class="text-[10px] font-medium text-slate-500 hidden sm:block uppercase tracking-wider">NTSU-COM Report Evaluation System</p>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <span class="hidden md:inline-flex items-center text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full font-medium border border-slate-200">
-                    <i class="fa-solid fa-code mr-1.5 text-slate-400"></i> CestmoiHYL
-                </span>
-                <button id="loadSampleBtn" onclick="loadSampleReport()" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> 範例資料
-                </button>
-                
-                <!-- Auth UI -->
-                <div id="userHeaderInfo" class="hidden items-center gap-2">
-                    <span id="headerUserName" class="text-xs font-bold text-ntsu-700 bg-ntsu-50 px-2 py-1 rounded-md border border-ntsu-200"></span>
-                    <button onclick="toggleAdminModal()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
-                        <i class="fa-solid fa-users-gear"></i> 管理
-                    </button>
-                    <button onclick="window.handleLogout()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm">
-                        登出
+                <div class="flex items-center space-x-4">
+                    <!-- Auth Controls -->
+                    <button onclick="showAuthModal('login')" id="btnLoginNav" class="text-sm font-medium text-brand-600 hover:text-brand-700 bg-brand-50 px-3 py-1.5 rounded-md transition-colors">登入 / 註冊</button>
+                    <div id="userMenu" class="hidden flex items-center space-x-3 border-r border-slate-200 pr-4">
+                        <span id="navUserName" class="text-sm font-medium text-slate-700"></span>
+                        <button onclick="toggleAdminView(true)" id="btnAdmin" class="hidden text-xs bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded transition-colors">管理後台</button>
+                        <button onclick="handleLogout()" class="text-sm text-slate-500 hover:text-red-600 transition-colors">登出</button>
+                    </div>
+
+                    <button onclick="toggleSettingsModal()" class="text-slate-500 hover:text-brand-600 transition-colors p-2 rounded-full hover:bg-slate-100 focus:outline-none" title="設定">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     </button>
                 </div>
-                <button id="loginHeaderBtn" onclick="toggleAuthModal()" class="text-xs bg-ntsu-700 hover:bg-ntsu-800 text-white font-semibold px-4 py-1.5 rounded-lg shadow-md transition-all flex items-center gap-1.5 hover:shadow-lg active:scale-95">
-                    <i class="fa-solid fa-user-circle"></i> 會員登入
-                </button>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 relative">
+    <!-- Admin View (Hidden by default) -->
+    <div id="adminView" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-800">系統會員總覽</h2>
+                <button onclick="loadAdminData()" class="text-sm text-brand-600 hover:text-brand-800 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> 重新整理
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 text-sm">
+                            <th class="px-6 py-3 font-medium border-b border-slate-200">真實姓名</th>
+                            <th class="px-6 py-3 font-medium border-b border-slate-200">電子信箱</th>
+                            <th class="px-6 py-3 font-medium border-b border-slate-200">註冊時間</th>
+                            <th class="px-6 py-3 font-medium border-b border-slate-200">使用者 UID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody" class="text-sm text-slate-700 divide-y divide-slate-200">
+                        <tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">載入中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <main id="mainAppView" class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        <!-- Left Column: Upload & Rubric (40%) -->
-        <div class="w-full lg:w-2/5 flex flex-col gap-6">
+        <!-- Grid Layout for Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- Upload Card -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-                    <i class="fa-solid fa-cloud-arrow-up text-ntsu-600"></i>
-                    <h2 class="font-bold text-slate-800">上傳報告檔案</h2>
-                </div>
-                <div class="p-5">
-                    <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center transition-all duration-200 hover:border-ntsu-500 hover:bg-ntsu-50 group cursor-pointer" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
-                        <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-ntsu-100 transition-colors">
-                            <i class="fa-regular fa-file-pdf text-3xl text-slate-400 group-hover:text-ntsu-600"></i>
-                        </div>
-                        <h3 class="font-semibold text-slate-700 mb-1">點擊或拖曳檔案至此</h3>
-                        <p class="text-xs text-slate-500 mb-3">支援 .pdf, .docx, .pptx (單檔限 10MB)</p>
-                        <input type="file" id="fileInput" class="hidden" multiple accept=".pdf,.docx,.pptx,.ppt" onchange="handleFileSelect(event)">
-                        <button class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium px-5 py-2 rounded-lg shadow-sm transition-colors">
-                            選擇檔案
-                        </button>
-                    </div>
-
-                    <!-- File List -->
-                    <div id="fileListContainer" class="mt-4 hidden">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-semibold text-slate-600">已選擇檔案</span>
-                            <button onclick="clearAllFiles()" class="text-xs text-rose-500 hover:text-rose-700 font-medium">全部清除</button>
-                        </div>
-                        <ul id="fileList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></ul>
-                        
-                        <div class="mt-5 border-t border-slate-100 pt-5">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">API 授權金鑰 (Gemini)</label>
-                            <input type="password" id="apiKey" placeholder="請輸入 Gemini API Key" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-ntsu-500 focus:ring-1 focus:ring-ntsu-500 transition-shadow">
-                            
-                            <button id="startEvalBtn" onclick="startEvaluation()" class="w-full mt-4 bg-ntsu-700 hover:bg-ntsu-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 group hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                                <i class="fa-solid fa-rocket group-hover:translate-x-1 transition-transform"></i> 開始 AI 智能評估
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rubric Card -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <button onclick="toggleRubric()" class="w-full px-5 py-4 bg-slate-50 flex items-center justify-between text-left hover:bg-slate-100 transition-colors">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-list-check text-slate-500"></i>
-                        <h2 class="font-bold text-slate-800">標準評量尺規 (Rubric)</h2>
-                    </div>
-                    <i id="rubricIcon" class="fa-solid fa-chevron-down text-slate-400 transition-transform"></i>
-                </button>
-                <div id="rubricContent" class="hidden p-5 border-t border-slate-100 text-sm">
-                    <div class="space-y-4">
-                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <h4 class="font-bold text-ntsu-800 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-briefcase"></i> 1. 專業內容與產業鏈結 (40%)</h4>
-                            <p class="text-slate-600 text-xs leading-relaxed">理論基礎的正確性、內容深度，以及與休閒產業實務需求的契合度。是否能提出具體的產業洞察。</p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <h4 class="font-bold text-blue-800 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-diagram-project"></i> 2. 邏輯結構與推導 (30%)</h4>
-                            <p class="text-slate-600 text-xs leading-relaxed">簡報結構是否完整(起承轉合)、論點推導是否具備邏輯性，結論是否有足夠的數據或論述支持。</p>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <h4 class="font-bold text-purple-800 mb-1 flex items-center gap-1.5"><i class="fa-solid fa-object-group"></i> 3. 視覺呈現與資訊可讀性 (30%)</h4>
-                            <p class="text-slate-600 text-xs leading-relaxed">排版設計是否美觀、配色是否得宜、字體大小是否適中、圖表數據是否清晰易讀不雜亂。</p>
-                        </div>
-                        <div class="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                            <p class="text-xs text-amber-800 font-medium"><i class="fa-solid fa-circle-info mr-1"></i> AI 將採用「三明治回饋法」(肯定-建議-鼓勵)，提供客觀且具建設性的指導。</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Column: Dashboard & QA (60%) -->
-        <div class="w-full lg:w-3/5 flex flex-col gap-6">
-            
-            <!-- Dashboard Card -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col min-h-[400px] h-full overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-ntsu-600"></i>
-                        <h2 class="font-bold text-slate-800">評量結果看板</h2>
-                    </div>
-                    <div id="evalStatus" class="text-xs font-medium text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
-                        等待評估中...
-                    </div>
-                </div>
+            <!-- Left Column: Input & Results (Module 1 & 2) -->
+            <div class="lg:col-span-4 space-y-6">
                 
-                <div class="flex-1 p-5 relative overflow-y-auto bg-slate-50/50">
+                <!-- Input Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <h2 class="text-lg font-semibold text-slate-800 mb-2 flex items-center">
+                        <span class="bg-brand-100 text-brand-600 rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">1</span>
+                        研究構想輸入
+                    </h2>
+                    <p class="text-sm text-slate-500 mb-4">請以自然語言描述您的研究問題，系統將自動轉化為精確的 ERIC 檢索詞。</p>
+                    <textarea id="researchQuery" rows="4" class="w-full rounded-lg border-slate-300 border p-3 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow text-sm" placeholder="例如：探討生成式AI在中小學 STEM 教學的焦慮感..."></textarea>
                     
-                    <!-- Initial Empty State -->
-                    <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
-                        <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                            <i class="fa-solid fa-robot text-4xl text-slate-300"></i>
-                        </div>
-                        <p class="font-medium text-slate-600 mb-1">尚未進行評量</p>
-                        <p class="text-sm">請於左側上傳報告檔案，輸入API金鑰後開始評估。</p>
-                    </div>
+                    <button id="btnAnalyze" onclick="startAnalysisProcess()" class="mt-4 w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex justify-center items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        開始探勘分析
+                    </button>
+                </div>
 
-                    <!-- Loading State -->
-                    <div id="loadingState" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
-                        <div class="relative w-16 h-16 mb-4">
-                            <div class="absolute inset-0 border-4 border-ntsu-200 rounded-full"></div>
-                            <div class="absolute inset-0 border-4 border-ntsu-600 rounded-full border-t-transparent animate-spin"></div>
-                            <i class="fa-solid fa-brain absolute inset-0 flex items-center justify-center text-ntsu-600 animate-pulse text-xl"></i>
-                        </div>
-                        <p class="font-bold text-ntsu-800 animate-pulse mb-1">AI 正在仔細閱讀與分析...</p>
-                        <p class="text-xs text-slate-500">預計需要 10-20 秒，請稍候</p>
-                    </div>
+                <!-- Status Panel -->
+                <div id="statusPanel" class="bg-slate-100 rounded-xl p-4 hidden border border-slate-200">
+                    <ul class="space-y-3 text-sm" id="statusList">
+                        <!-- Status items will be injected here -->
+                    </ul>
+                </div>
 
-                    <!-- Results Display -->
-                    <div id="resultDisplay" class="hidden flex-col gap-6 animate-slide-up">
-                        
-                        <!-- Header & Grade -->
-                        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-800 mb-1">總體評價</h3>
-                                <p id="resSummary" class="text-sm text-slate-600 leading-relaxed max-w-xl"></p>
-                            </div>
-                            <div class="shrink-0 flex flex-col items-center bg-slate-50 p-3 rounded-lg border border-slate-200 min-w-[100px]">
-                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">預估等第</span>
-                                <div id="resGrade" class="text-3xl font-black rounded-lg">A+</div>
-                            </div>
-                        </div>
-
-                        <!-- Scores -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                                <div class="flex justify-between items-end mb-2">
-                                    <span class="text-xs font-bold text-slate-700">專業與產業 (40%)</span>
-                                    <span id="score1" class="text-lg font-bold text-ntsu-700">--</span>
-                                </div>
-                                <div class="w-full bg-slate-100 rounded-full h-2">
-                                    <div id="bar1" class="bg-ntsu-500 h-2 rounded-full transition-all duration-1000 w-0"></div>
-                                </div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                                <div class="flex justify-between items-end mb-2">
-                                    <span class="text-xs font-bold text-slate-700">邏輯與結構 (30%)</span>
-                                    <span id="score2" class="text-lg font-bold text-blue-700">--</span>
-                                </div>
-                                <div class="w-full bg-slate-100 rounded-full h-2">
-                                    <div id="bar2" class="bg-blue-500 h-2 rounded-full transition-all duration-1000 w-0"></div>
-                                </div>
-                            </div>
-                            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-                                <div class="flex justify-between items-end mb-2">
-                                    <span class="text-xs font-bold text-slate-700">視覺與排版 (30%)</span>
-                                    <span id="score3" class="text-lg font-bold text-purple-700">--</span>
-                                </div>
-                                <div class="w-full bg-slate-100 rounded-full h-2">
-                                    <div id="bar3" class="bg-purple-500 h-2 rounded-full transition-all duration-1000 w-0"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Feedback Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Strengths -->
-                            <div class="bg-emerald-50/50 border border-emerald-200 p-4 rounded-xl">
-                                <h4 class="font-bold text-emerald-800 mb-3 flex items-center gap-2">
-                                    <i class="fa-solid fa-thumbs-up text-emerald-600"></i> 優點與亮點
-                                </h4>
-                                <ul id="resStrengths" class="space-y-2 text-sm text-emerald-900/80"></ul>
-                            </div>
-                            <!-- Weaknesses -->
-                            <div class="bg-amber-50/50 border border-amber-200 p-4 rounded-xl">
-                                <h4 class="font-bold text-amber-800 mb-3 flex items-center gap-2">
-                                    <i class="fa-solid fa-magnifying-glass text-amber-600"></i> 觀察與建議
-                                </h4>
-                                <ul id="resWeaknesses" class="space-y-2 text-sm text-amber-900/80"></ul>
-                            </div>
-                        </div>
-
-                        <!-- Action Items -->
-                        <div class="bg-blue-50/50 border border-blue-200 p-4 rounded-xl">
-                            <h4 class="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                                <i class="fa-solid fa-person-running text-blue-600"></i> 具體行動方案 (Action Items)
-                            </h4>
-                            <ul id="resActionItems" class="space-y-2 text-sm text-blue-900/80"></ul>
-                        </div>
-                        
-                        <!-- Save to Cloud Button -->
-                        <div class="flex justify-end pt-2">
-                            <button id="saveCloudBtn" onclick="saveToCloud()" class="bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2">
-                                <i class="fa-solid fa-cloud-arrow-up"></i> 儲存評估結果至雲端
-                            </button>
-                        </div>
-
+                <!-- Generated Boolean Query Card -->
+                <div id="booleanQueryCard" class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hidden">
+                     <h2 class="text-sm font-semibold text-slate-800 mb-2 flex justify-between items-center">
+                        <span>優化檢索詞 (ERIC Boolean)</span>
+                        <button onclick="copyQuery()" class="text-brand-600 hover:text-brand-700 text-xs flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 022 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            複製
+                        </button>
+                    </h2>
+                    <div class="bg-slate-800 text-green-400 p-3 rounded-lg font-mono text-xs break-words" id="displayQuery">
+                        <!-- Query goes here -->
                     </div>
                 </div>
+
             </div>
 
-            <!-- Inline QA Card -->
-            <div id="qaSection" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[350px] opacity-50 pointer-events-none transition-opacity duration-300">
-                <div class="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-                    <i class="fa-solid fa-comments text-blue-600"></i>
-                    <h2 class="font-bold text-slate-800 text-sm">針對報告提問 (Q&A)</h2>
-                </div>
+            <!-- Right Column: Literature List & Report (Module 3) -->
+            <div class="lg:col-span-8 flex flex-col space-y-6">
                 
-                <div id="qaMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
-                    <div class="text-center text-xs text-slate-400 my-4">
-                        評估完成後，您可以在此針對報告內容向 AI 提問。
+                <!-- Tab Navigation (List vs Report) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-12rem)] min-h-[600px]">
+                    <div class="border-b border-slate-200 bg-slate-50 flex justify-between items-center px-2">
+                        <div class="flex">
+                            <button id="tabReport" onclick="switchTab('report')" class="px-5 py-3 text-sm font-medium text-brand-600 border-b-2 border-brand-600 bg-white">
+                                趨勢綜述報告
+                            </button>
+                            <button id="tabList" onclick="switchTab('list')" class="px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 border-b-2 border-transparent">
+                                檢索文獻池 <span id="articleCountBadge" class="ml-1 bg-slate-200 text-slate-600 py-0.5 px-2 rounded-full text-xs">0</span>
+                            </button>
+                        </div>
+                        <div class="px-4 flex space-x-2">
+                            <button onclick="exportData('json')" class="text-xs flex items-center text-slate-600 hover:text-brand-600 transition-colors bg-white border border-slate-300 px-2 py-1 rounded" title="匯出原始資料(JSON)">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> JSON
+                            </button>
+                            <button onclick="exportData('md')" class="text-xs flex items-center text-slate-600 hover:text-brand-600 transition-colors bg-white border border-slate-300 px-2 py-1 rounded" title="匯出報告(Markdown)">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> MD
+                            </button>
+                            <button onclick="exportData('word')" class="text-xs flex items-center text-slate-600 hover:text-brand-600 transition-colors bg-white border border-slate-300 px-2 py-1 rounded" title="匯出報告(Word)">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Word
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="p-3 bg-white border-t border-slate-100 flex gap-2">
-                    <input type="text" id="qaInput" placeholder="請輸入您的問題..." class="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" onkeypress="if(event.key === 'Enter') sendQAMessage()">
-                    <button onclick="sendQAMessage()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
+                    <!-- Content Area -->
+                    <div class="flex-grow overflow-y-auto p-6 bg-white relative">
+                        
+                        <!-- Empty State -->
+                        <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                            <svg class="w-16 h-16 mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            <p>輸入研究構想，開始自動探勘文獻趨勢</p>
+                        </div>
+
+                        <!-- Report Tab Content -->
+                        <div id="contentReport" class="hidden h-full">
+                            <article id="reportContainer" class="prose prose-slate max-w-none font-serif">
+                                <!-- Markdown renders here -->
+                            </article>
+                        </div>
+
+                        <!-- List Tab Content -->
+                        <div id="contentList" class="hidden h-full flex-col space-y-4">
+                            <!-- Article cards injected here -->
+                            <div id="articleListContainer" class="space-y-4"></div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
     </main>
-    
-    <footer class="mt-auto py-6 border-t border-slate-200 bg-white text-center">
-         <p class="text-xs text-slate-400 font-medium">©2026 NTSU-COM-CestmoiHYL. All rights reserved.</p>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center text-xs text-slate-500">
+            <div>
+                &copy; 2026 TonyStudio (TONY 楊文澤顧問). All rights reserved.
+            </div>
+            <div>
+                Created by <a href="https://www.youtube.com/feed/you" target="_blank" class="text-brand-600 hover:underline">CestmoiHYL</a>
+            </div>
+        </div>
     </footer>
 
-    <!-- Bonjour AI Assistant FAB -->
-    <div id="tonyFabContainer" class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        <div id="tonyBadge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full absolute -top-2 -right-2 z-10 animate-bounce shadow-sm">!</div>
-        
-        <div id="tonyWindow" class="hidden mb-4 bg-white rounded-2xl shadow-2xl border border-slate-200 w-[350px] h-[450px] flex flex-col overflow-hidden transition-all duration-300 transform origin-bottom-right">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-ntsu-700 to-ntsu-900 text-white p-3 flex justify-between items-center cursor-move" id="tonyHeader">
-                <div class="flex items-center gap-3">
-                    <div class="relative">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bonjour&backgroundColor=b6e3f4" alt="Bonjour" class="w-10 h-10 rounded-full border-2 border-white/50 bg-white">
-                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-ntsu-800 rounded-full"></div>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-sm">Bonjour 老師</h3>
-                        <p class="text-[10px] text-ntsu-100">AI 導師・隨時協助</p>
-                    </div>
-                </div>
-                <button onclick="toggleTony()" class="text-white/70 hover:text-white p-1">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all">
+            <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                系統設定
+            </h3>
             
-            <!-- Chat Area -->
-            <div id="tonyMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-                <div class="flex gap-2">
-                    <div class="w-8 h-8 rounded-full bg-ntsu-100 flex-shrink-0 flex items-center justify-center border border-ntsu-200">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bonjour" alt="Bonjour" class="w-full h-full rounded-full">
-                    </div>
-                    <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-sm shadow-sm max-w-[80%]">
-                        <p class="text-sm text-slate-700">嗨！我是 Bonjour 老師 👋<br>準備好讓你的報告更上一層樓了嗎？有任何問題都可以問我喔！</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Input Area -->
-            <div class="p-3 bg-white border-t border-slate-100">
-                <div class="flex gap-2 items-center bg-slate-50 border border-slate-300 rounded-full p-1 pr-1.5 focus-within:border-ntsu-500 focus-within:bg-white transition-colors">
-                    <input type="text" id="tonyInput" placeholder="問 Bonjour 老師..." class="flex-1 bg-transparent px-3 py-1.5 text-sm focus:outline-none" onkeypress="if(event.key === 'Enter') sendTonyMessage()">
-                    <button onclick="sendTonyMessage()" class="w-8 h-8 rounded-full bg-ntsu-600 hover:bg-ntsu-700 text-white flex items-center justify-center transition-colors shrink-0">
-                        <i class="fa-solid fa-arrow-up text-sm"></i>
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-sm font-medium text-slate-700">Gemini API Key</label>
+                    <!-- 按鈕：觸發 API Key 申請教學 Modal -->
+                    <button type="button" onclick="showGuideModal()" class="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        教我如何免費取得？
                     </button>
                 </div>
-            </div>
-        </div>
-        
-        <!-- FAB Button -->
-        <button onclick="toggleTony()" class="w-14 h-14 bg-gradient-to-br from-ntsu-500 to-ntsu-700 hover:from-ntsu-600 hover:to-ntsu-800 text-white rounded-full shadow-xl flex items-center justify-center text-2xl transition-transform hover:scale-110 active:scale-95 group border-2 border-white/20">
-            <i class="fa-solid fa-comment-dots group-hover:animate-pulse"></i>
-        </button>
-    </div>
-
-    <!-- Auth Modal -->
-    <div id="authModal" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col transform transition-all scale-95 opacity-0" id="authModalContent">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-ntsu-100 text-ntsu-700 flex items-center justify-center">
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                    會員服務
-                </h3>
-                <button onclick="toggleAuthModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            
-            <div class="flex border-b border-slate-200">
-                <button onclick="switchAuthTab('login')" id="tabBtnLogin" class="flex-1 py-3 text-sm font-bold text-ntsu-800 border-b-2 border-ntsu-700 bg-white transition-colors">登入</button>
-                <button onclick="switchAuthTab('register')" id="tabBtnRegister" class="flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent bg-slate-50 hover:bg-white transition-colors">註冊新帳號</button>
+                <input type="password" id="apiKeyInput" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-2 focus:ring-brand-500" placeholder="若留空將嘗試使用環境預設金鑰">
+                <p class="text-xs text-slate-500 mt-2">金鑰將僅儲存於您的瀏覽器 (LocalStorage) 中，不會上傳至任何外部伺服器。</p>
             </div>
 
-            <!-- Login Form -->
-            <form id="loginForm" onsubmit="window.handleLogin(event)" class="p-6 flex flex-col gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">電子信箱</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="email" id="loginEmail" required class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow" placeholder="your@email.com">
-                    </div>
-                </div>
-                <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <label class="block text-xs font-semibold text-slate-700">密碼</label>
-                        <button type="button" onclick="toggleForgotModal()" class="text-xs text-ntsu-600 hover:text-ntsu-800 font-semibold hover:underline">忘記密碼？</button>
-                    </div>
-                    <div class="relative">
-                        <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="password" id="loginPassword" required class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow" placeholder="••••••••">
-                    </div>
-                </div>
-                <button type="submit" id="loginBtn" class="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 hover:shadow-lg">
-                    登入系統
-                </button>
-            </form>
-
-            <!-- Register Form -->
-            <form id="registerForm" onsubmit="window.handleRegister(event)" class="p-6 flex-col gap-4 hidden">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">真實姓名</label>
-                    <div class="relative">
-                        <i class="fa-regular fa-id-badge absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="text" id="regName" required placeholder="請輸入您的真實姓名" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5 mt-2">電子信箱</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="email" id="regEmail" required placeholder="請輸入有效的電子信箱" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1.5 mt-2">設定密碼</label>
-                    <div class="relative">
-                        <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                        <input type="password" id="regPassword" required placeholder="6 位數以上英數字" minlength="6" class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-ntsu-600 focus:ring-1 focus:ring-ntsu-600 transition-shadow">
-                    </div>
-                </div>
-                
-                <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2.5 items-start shadow-sm">
-                    <i class="fa-solid fa-circle-exclamation text-amber-500 mt-0.5"></i>
-                    <p class="text-xs text-amber-800 leading-relaxed font-medium">溫馨提醒：註冊確認信有時會跑到「垃圾郵件匣」，請記得前往確認唷！</p>
-                </div>
-
-                <button type="submit" id="regBtn" class="w-full mt-2 bg-ntsu-700 hover:bg-ntsu-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-2 hover:shadow-lg">
-                    建立帳號
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Forgot Password Modal -->
-    <div id="forgotModal" class="fixed inset-0 z-[70] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4 transform transition-all scale-95 opacity-0" id="forgotModalContent">
-            <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2 mb-1">
-                <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-                    <i class="fa-solid fa-key"></i>
-                </div>
-                重設密碼
-            </h3>
-            <p class="text-xs text-slate-500 leading-relaxed mb-2">請輸入您註冊時使用的電子信箱，我們將寄送密碼重設連結給您。</p>
-            <form onsubmit="window.handleResetPassword(event)" class="flex flex-col gap-4">
-                <input type="email" id="forgotEmail" required placeholder="輸入電子信箱" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-shadow">
-                <div class="flex gap-2">
-                    <button type="button" onclick="toggleForgotModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl transition-colors">取消</button>
-                    <button type="submit" id="resetBtn" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all hover:shadow">發送連結</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Admin Modal -->
-    <div id="adminModal" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden transform transition-all scale-95 opacity-0" id="adminModalContent">
-            <div class="px-6 py-4 bg-slate-800 text-white flex items-center justify-between shrink-0">
-                <h3 class="font-bold text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-shield-halved text-slate-400"></i> 系統管理員 / 會員總覽
-                </h3>
-                <button onclick="toggleAdminModal()" class="text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 w-8 h-8 rounded-full transition-colors flex items-center justify-center">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            
-            <div class="flex-1 overflow-auto p-6 bg-slate-50">
-                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="py-3 px-5 font-bold">使用者名稱</th>
-                                <th class="py-3 px-5 font-bold">電子信箱</th>
-                                <th class="py-3 px-5 font-bold">註冊時間</th>
-                                <th class="py-3 px-5 font-bold text-right">狀態</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminTableBody" class="text-sm divide-y divide-slate-100">
-                        </tbody>
-                    </table>
-                </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="toggleSettingsModal()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors">取消</button>
+                <button onclick="saveSettings()" class="px-4 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-md transition-colors">儲存設定</button>
             </div>
         </div>
     </div>
 
-    <div id="toastContainer" class="fixed top-4 right-4 z-[100] flex flex-col gap-2"></div>
+    <!-- API Key Guide Modal (整合圖文教學) -->
+    <div id="guideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4 sm:p-6">
+        <div class="bg-slate-50 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col relative border border-slate-200">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900">如何免費取得 Google Gemini API Key</h3>
+                </div>
+                <button onclick="hideGuideModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
 
-    <script>
-        const state = {
-            uploadedFiles: [],
-            extractedTexts: [],
-            evaluationResult: null,
-            tonyChatHistory: [],
-            qaChatHistory: [],
-        };
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.getElementById('dropZone').classList.add('border-ntsu-500', 'bg-ntsu-50');
-        }
-
-        function handleDragLeave(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.getElementById('dropZone').classList.remove('border-ntsu-500', 'bg-ntsu-50');
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            document.getElementById('dropZone').classList.remove('border-ntsu-500', 'bg-ntsu-50');
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                processFiles(e.dataTransfer.files);
-            }
-        }
-
-        function handleFileSelect(e) {
-            if (e.target.files && e.target.files.length > 0) {
-                processFiles(e.target.files);
-            }
-        }
-
-        function processFiles(files) {
-            const MAX_SIZE = 10 * 1024 * 1024;
-            const validTypes = ['.pdf', '.docx', '.pptx', '.ppt'];
-            
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const ext = '.' + file.name.split('.').pop().toLowerCase();
+            <!-- Modal Content (完整的申請教學內容) -->
+            <div class="p-6 space-y-6 text-slate-800">
                 
-                if (file.size > MAX_SIZE) {
-                    showToast(`檔案 ${file.name} 超過 10MB 限制`, 'error');
-                    continue;
-                }
-                
-                if (!validTypes.includes(ext)) {
-                    showToast(`不支援的檔案格式: ${file.name}`, 'error');
-                    continue;
-                }
-                
-                if (!state.uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                    state.uploadedFiles.push(file);
-                }
-            }
-            updateFileListUI();
-        }
+                <!-- Fast Track Banner -->
+                <div class="bg-gradient-to-r from-brand-600 to-indigo-700 rounded-xl p-5 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h4 class="text-base font-bold">準備好了嗎？直接前往 Google AI Studio</h4>
+                        <p class="text-xs text-indigo-100 mt-0.5">使用您日常登入的 Google 帳號即可免費申請。</p>
+                    </div>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="shrink-0 bg-white text-brand-600 hover:bg-slate-100 font-semibold px-4 py-2 rounded-lg shadow transition-colors text-xs flex items-center">
+                        開啟 Google AI Studio
+                        <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </div>
 
-        function updateFileListUI() {
-            const container = document.getElementById('fileListContainer');
-            const list = document.getElementById('fileList');
-            
-            if (state.uploadedFiles.length === 0) {
-                container.classList.add('hidden');
-                return;
-            }
-            
-            container.classList.remove('hidden');
-            list.innerHTML = '';
-            
-            state.uploadedFiles.forEach((file, index) => {
-                const li = document.createElement('li');
-                li.className = 'flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-lg text-sm';
-                
-                let iconClass = 'fa-file text-slate-400';
-                if (file.name.endsWith('.pdf')) iconClass = 'fa-file-pdf text-red-500';
-                else if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) iconClass = 'fa-file-powerpoint text-orange-500';
-                else if (file.name.endsWith('.docx')) iconClass = 'fa-file-word text-blue-500';
-
-                li.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <i class="fa-solid ${iconClass} text-lg shrink-0"></i>
-                        <div class="truncate">
-                            <p class="font-medium text-slate-700 truncate text-xs" title="${file.name}">${file.name}</p>
-                            <p class="text-[10px] text-slate-400">${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                <!-- Step Timeline -->
+                <div class="space-y-4">
+                    <!-- Step 1 -->
+                    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-start gap-3.5">
+                            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-brand-600 text-white font-bold text-xs shrink-0">1</div>
+                            <div class="flex-grow">
+                                <h4 class="text-sm font-bold text-slate-900 mb-1">前往 Google AI Studio 網站</h4>
+                                <p class="text-xs text-slate-600 mb-2.5 leading-relaxed">
+                                    在瀏覽器中開啟官方連結 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-brand-600 hover:underline font-medium">aistudio.google.com/app/apikey</a>，並以您的 <strong>Google 帳號</strong>登入。
+                                </p>
+                                <div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800 flex items-start">
+                                    <svg class="w-4 h-4 text-amber-600 mr-1.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span>若您是第一次登入，系統可能會提示您同意《服務條款 (Terms of Service)》，勾選同意並點擊「Continue」即可。</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button onclick="removeFile(${index})" class="text-slate-400 hover:text-rose-500 p-1 rounded transition-colors shrink-0">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                `;
-                list.appendChild(li);
-            });
-        }
 
-        function removeFile(index) {
-            state.uploadedFiles.splice(index, 1);
-            updateFileListUI();
-        }
+                    <!-- Step 2 -->
+                    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-start gap-3.5">
+                            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-brand-600 text-white font-bold text-xs shrink-0">2</div>
+                            <div class="flex-grow">
+                                <h4 class="text-sm font-bold text-slate-900 mb-1">建立 API 金鑰 (Create API key)</h4>
+                                <p class="text-xs text-slate-600 mb-2.5 leading-relaxed">
+                                    進入頁面後，點擊藍色的 <strong>「Create API key」</strong> 按鈕。
+                                </p>
+                                <div class="border border-slate-200 bg-slate-50 rounded-lg p-3 text-xs space-y-1.5 text-slate-700">
+                                    <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">對話框選項說明</div>
+                                    <ul class="list-disc list-inside space-y-1">
+                                        <li><strong>Create API key in new project</strong>：若為第一次申請，選擇此項，系統會自動為您建立一個全新的 Google Cloud 專案。</li>
+                                        <li><strong>Create API key in existing project</strong>：若您已有 GCP 專案，亦可選取現有專案進行綁定。</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-        function clearAllFiles() {
-            state.uploadedFiles = [];
-            document.getElementById('fileInput').value = '';
-            updateFileListUI();
-        }
+                    <!-- Step 3 -->
+                    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                        <div class="flex items-start gap-3.5">
+                            <div class="flex items-center justify-center w-7 h-7 rounded-full bg-brand-600 text-white font-bold text-xs shrink-0">3</div>
+                            <div class="flex-grow">
+                                <h4 class="text-sm font-bold text-slate-900 mb-1">複製金鑰並貼回本系統</h4>
+                                <p class="text-xs text-slate-600 mb-2.5 leading-relaxed">
+                                    畫面會顯示一串以 <code class="bg-slate-100 text-brand-600 px-1 py-0.5 rounded font-mono">AIzaSy...</code> 開頭的長字串。點擊 <strong>「Copy」</strong> 複製該金鑰。
+                                </p>
+                                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-2.5 text-xs text-indigo-900">
+                                    回到系統設定，將金鑰貼入「Gemini API Key」欄位並點選儲存即可！
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        function toggleRubric() {
-            const content = document.getElementById('rubricContent');
-            const icon = document.getElementById('rubricIcon');
-            content.classList.toggle('hidden');
-            icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-        }
+                <!-- FAQ Section -->
+                <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+                    <h4 class="text-sm font-bold text-slate-900 mb-3 flex items-center">
+                        <svg class="w-4 h-4 text-brand-600 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        常見問題與安全防護
+                    </h4>
+                    <div class="space-y-3 text-xs text-slate-600">
+                        <div>
+                            <span class="font-semibold text-slate-800">Q1: 申請 API Key 需要付費嗎？</span>
+                            <p class="mt-0.5">不用。Google 提供免費額度 (Free Tier)，預設每分鐘可進行最多 15 次請求 (RPM)，非常足夠日常學術研究探勘使用。</p>
+                        </div>
+                        <hr class="border-slate-100">
+                        <div>
+                            <span class="font-semibold text-slate-800">Q2: 我的 API Key 放在這裡安全嗎？</span>
+                            <p class="mt-0.5">本系統為純前端應用程式，您的 API Key 僅會儲存在您自己的瀏覽器 (LocalStorage) 中，絕對不會上傳或透露給任何第三方伺服器。</p>
+                        </div>
+                    </div>
+                </div>
 
-        async function extractTextFromFiles() {
-            state.extractedTexts = [];
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-end z-10">
+                <button onclick="hideGuideModal()" class="px-5 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm">
+                    我知道了，返回設定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal (Login / Register / Forgot Password) -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all relative">
             
-            for (const file of state.uploadedFiles) {
-                try {
-                    if (file.name.endsWith('.pdf')) {
-                        const arrayBuffer = await file.arrayBuffer();
-                        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                        let text = `--- File: ${file.name} ---\n`;
-                        
-                        const maxPages = Math.min(pdf.numPages, 15);
-                        for (let i = 1; i <= maxPages; i++) {
-                            const page = await pdf.getPage(i);
-                            const content = await page.getTextContent();
-                            const pageText = content.items.map(item => item.str).join(' ');
-                            text += `[Page ${i}] ${pageText}\n`;
-                        }
-                        state.extractedTexts.push(text);
-                    } else {
-                        state.extractedTexts.push(`--- File: ${file.name} (Content extraction not supported in browser, evaluate based on file structure/title concept if possible) ---`);
-                    }
-                } catch (e) {
-                    console.error("Error extracting file:", file.name, e);
-                    state.extractedTexts.push(`--- File: ${file.name} (Error reading file) ---`);
+            <!-- Close Button -->
+            <button onclick="hideAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-1 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <!-- Login View -->
+            <div id="viewLogin" class="p-8">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-slate-900">歡迎回來</h3>
+                    <p class="text-sm text-slate-500 mt-1">請登入您的帳號以繼續</p>
+                </div>
+                <form id="formLogin" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">電子信箱</label>
+                        <input type="email" id="loginEmail" required class="w-full rounded-lg border-slate-300 border px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="name@example.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">密碼</label>
+                        <input type="password" id="loginPassword" required class="w-full rounded-lg border-slate-300 border px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="••••••••">
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <label class="flex items-center text-sm text-slate-600">
+                            <input type="checkbox" class="rounded text-brand-600 focus:ring-brand-500 mr-2"> 記住我
+                        </label>
+                        <button type="button" onclick="switchAuthView('forgot')" class="text-sm font-medium text-brand-600 hover:text-brand-500">忘記密碼？</button>
+                    </div>
+                    <button type="submit" id="btnSubmitLogin" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-lg transition-colors mt-2 shadow-sm">登入</button>
+                </form>
+
+                <div class="relative flex py-4 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink-0 mx-4 text-slate-400 text-xs">或</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <button type="button" onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center bg-white border border-slate-300 text-slate-700 font-medium py-2.5 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    使用 Google 繼續
+                </button>
+
+                <div class="mt-6 text-center text-sm text-slate-600 border-t border-slate-100 pt-4">
+                    還沒有帳號嗎？ <button onclick="switchAuthView('register')" class="font-bold text-brand-600 hover:text-brand-500">立即註冊</button>
+                </div>
+            </div>
+
+            <!-- Register View -->
+            <div id="viewRegister" class="p-8 hidden">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-slate-900">建立新帳號</h3>
+                    <p class="text-sm text-slate-500 mt-1">加入我們，解鎖專屬探勘功能</p>
+                </div>
+                <form id="formRegister" onsubmit="handleRegister(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">真實姓名</label>
+                        <input type="text" id="regName" required class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="請輸入您的真實姓名">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">電子信箱</label>
+                        <input type="email" id="regEmail" required class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="name@example.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">密碼</label>
+                        <input type="password" id="regPassword" required minlength="6" class="w-full rounded-lg border-slate-300 border px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="最少 6 個字元">
+                    </div>
+                    
+                    <div class="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start border border-amber-200 mt-2">
+                        <svg class="w-4 h-4 mr-1.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>溫馨提醒：註冊確認信有時會跑到「垃圾郵件匣」，請記得前往確認唷！</span>
+                    </div>
+
+                    <button type="submit" id="btnSubmitRegister" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-lg transition-colors mt-4 shadow-sm">註冊帳號</button>
+                </form>
+
+                <div class="relative flex py-4 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink-0 mx-4 text-slate-400 text-xs">或</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <button type="button" onclick="handleGoogleSignIn()" class="w-full flex items-center justify-center bg-white border border-slate-300 text-slate-700 font-medium py-2.5 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    使用 Google 繼續
+                </button>
+
+                <div class="mt-6 text-center text-sm text-slate-600 border-t border-slate-100 pt-4">
+                    想起來了嗎？ <button onclick="switchAuthView('login')" class="font-bold text-brand-600 hover:text-brand-500">返回登入</button>
+                </div>
+            </div>
+
+            <!-- Forgot Password View -->
+            <div id="viewForgot" class="p-8 hidden">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-slate-900">重設密碼</h3>
+                    <p class="text-sm text-slate-500 mt-1">請輸入您的註冊信箱以接收重設連結</p>
+                </div>
+                <form id="formForgot" onsubmit="handleResetPassword(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">電子信箱</label>
+                        <input type="email" id="forgotEmail" required class="w-full rounded-lg border-slate-300 border px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 outline-none" placeholder="name@example.com">
+                    </div>
+                    <button type="submit" id="btnSubmitForgot" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-lg transition-colors mt-2 shadow-sm">發送重設連結</button>
+                </form>
+
+                <div class="mt-6 text-center text-sm text-slate-600 border-t border-slate-100 pt-4">
+                    記起密碼了？ <button onclick="switchAuthView('login')" class="font-bold text-brand-600 hover:text-brand-500">返回登入</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Custom Toast Notification -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-[120] flex flex-col space-y-2"></div>
+
+    <script>
+        // --- State Management ---
+        const AppState = {
+            query: '',
+            booleanQuery: '',
+            articles: [],
+            reportMarkdown: '',
+            isProcessing: false,
+            // Core setting: Try to get from LocalStorage, otherwise use empty string so environment intercepts it
+            geminiApiKey: localStorage.getItem('researchAsst_apiKey') || '' 
+        };
+
+        // --- UI Helpers ---
+        const elements = {
+            btnAnalyze: document.getElementById('btnAnalyze'),
+            queryInput: document.getElementById('researchQuery'),
+            statusPanel: document.getElementById('statusPanel'),
+            statusList: document.getElementById('statusList'),
+            booleanQueryCard: document.getElementById('booleanQueryCard'),
+            displayQuery: document.getElementById('displayQuery'),
+            emptyState: document.getElementById('emptyState'),
+            contentReport: document.getElementById('contentReport'),
+            contentList: document.getElementById('contentList'),
+            tabReport: document.getElementById('tabReport'),
+            tabList: document.getElementById('tabList'),
+            reportContainer: document.getElementById('reportContainer'),
+            articleListContainer: document.getElementById('articleListContainer'),
+            articleCountBadge: document.getElementById('articleCountBadge'),
+            settingsModal: document.getElementById('settingsModal'),
+            guideModal: document.getElementById('guideModal'),
+            apiKeyInput: document.getElementById('apiKeyInput')
+        };
+
+        // --- Auth UI Helpers ---
+        function showAuthModal(view = 'login') {
+            switchAuthView(view);
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+
+        function switchAuthView(view) {
+            const viewLogin = document.getElementById('viewLogin');
+            const viewRegister = document.getElementById('viewRegister');
+            const viewForgot = document.getElementById('viewForgot');
+            
+            if (viewLogin) viewLogin.classList.add('hidden');
+            if (viewRegister) viewRegister.classList.add('hidden');
+            if (viewForgot) viewForgot.classList.add('hidden');
+            
+            if (view === 'login' && viewLogin) viewLogin.classList.remove('hidden');
+            if (view === 'register' && viewRegister) viewRegister.classList.remove('hidden');
+            if (view === 'forgot' && viewForgot) viewForgot.classList.remove('hidden');
+        }
+
+        function toggleAdminView(showAdmin) {
+            const mainApp = document.getElementById('mainAppView');
+            const adminView = document.getElementById('adminView');
+            
+            if (showAdmin) {
+                mainApp.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                loadAdminData();
+            } else {
+                mainApp.classList.remove('hidden');
+                adminView.classList.add('hidden');
+            }
+        }
+
+        // --- Guide Modal Controls ---
+        function showGuideModal() {
+            elements.guideModal.classList.remove('hidden');
+        }
+
+        function hideGuideModal() {
+            elements.guideModal.classList.add('hidden');
+        }
+
+        // --- Firebase Auth & Firestore Actions ---
+        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'researchAsst';
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const btn = document.getElementById('btnSubmitRegister');
+            
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '處理中...';
+                
+                // 1. 建立帳號
+                const userCredential = await window.fbCreateUser(window.firebaseAuth, email, password);
+                const user = userCredential.user;
+                
+                // 2. 儲存會員資料至公用集合，以供後台管理員讀取 (遵守規則：/artifacts/{appId}/public/data/{collectionName})
+                const profileRef = window.fbDoc(window.firebaseDb, 'artifacts', APP_ID, 'public', 'data', 'memberProfiles', user.uid);
+                await window.fbSetDoc(profileRef, {
+                    uid: user.uid,
+                    name: name,
+                    email: email,
+                    createdAt: new Date().toISOString()
+                });
+
+                showToast('註冊成功！歡迎加入', 'success');
+                hideAuthModal();
+            } catch (error) {
+                console.error(error);
+                let msg = '註冊失敗';
+                if (error.code === 'auth/email-already-in-use') msg = '該信箱已被註冊';
+                if (error.code === 'auth/weak-password') msg = '密碼過度簡單，請至少輸入6碼';
+                showToast(msg, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '註冊帳號';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('btnSubmitLogin');
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '登入中...';
+                await window.fbSignIn(window.firebaseAuth, email, password);
+                showToast('登入成功', 'success');
+                hideAuthModal();
+            } catch (error) {
+                console.error(error);
+                showToast('登入失敗，請檢查帳號與密碼', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '登入';
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await window.fbSignOut(window.firebaseAuth);
+                showToast('已登出', 'info');
+                toggleAdminView(false); // 回到主頁面
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value.trim();
+            const btn = document.getElementById('btnSubmitForgot');
+            
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '發送中...';
+                await window.fbResetPassword(window.firebaseAuth, email);
+                showToast('密碼重設信件已發送，請檢查信箱（包含垃圾郵件匣）', 'success');
+                switchAuthView('login');
+            } catch (error) {
+                console.error(error);
+                showToast('發送失敗，請確認信箱是否正確', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '發送重設連結';
+            }
+        }
+
+        async function handleGoogleSignIn() {
+            try {
+                const result = await window.fbSignInWithPopup(window.firebaseAuth, window.fbGoogleProvider);
+                const user = result.user;
+                
+                // 儲存或更新會員資料至公用集合，以供後台管理員讀取 (使用 merge: true 避免覆寫已有資料)
+                const profileRef = window.fbDoc(window.firebaseDb, 'artifacts', APP_ID, 'public', 'data', 'memberProfiles', user.uid);
+                await window.fbSetDoc(profileRef, {
+                    uid: user.uid,
+                    name: user.displayName || (user.email ? user.email.split('@')[0] : 'Google使用者'),
+                    email: user.email,
+                    createdAt: user.metadata?.creationTime || new Date().toISOString()
+                }, { merge: true });
+
+                showToast('Google 登入成功', 'success');
+                hideAuthModal();
+            } catch (error) {
+                console.error("Google Sign-In Error:", error);
+                if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+                    showToast('Google 登入失敗: ' + (error.message || '未知錯誤'), 'error');
                 }
             }
         }
 
-        const RUBRIC_PROMPT = `
-你是一位國立體育大學休閒產業經營系(NTSU-COM)的專業AI評量導師。
-你的任務是評估學生提交的報告草稿。你必須採用「三明治回饋法」(肯定-建議-鼓勵)，語氣溫和、正向、具建設性，絕對不可使用打擊信心的負面字眼。
+        async function loadAdminData() {
+            const tbody = document.getElementById('adminTableBody');
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500"><span class="loader w-4 h-4 mr-2"></span>載入中...</td></tr>';
+            
+            try {
+                const membersRef = window.fbCollection(window.firebaseDb, 'artifacts', APP_ID, 'public', 'data', 'memberProfiles');
+                const querySnapshot = await window.fbGetDocs(membersRef);
+                
+                if (querySnapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">目前尚無會員資料</td></tr>';
+                    return;
+                }
 
-請依據以下三個維度進行評分(滿分100，分別佔比40, 30, 30)：
-1. 專業內容與產業鏈結 (40分)：理論基礎、內容深度、與休閒產業實務契合度。
-2. 邏輯結構與推導 (30分)：起承轉合、論點推導邏輯、數據支持。
-3. 視覺呈現與資訊可讀性 (30分)：排版、配色、字體、圖表清晰度 (若僅有文字則評估標題層級與段落)。
+                let html = '';
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const dateObj = data.createdAt ? new Date(data.createdAt) : new Date();
+                    const formattedDate = dateObj.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute:'2-digit' });
+                    
+                    html += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-medium text-slate-900">${data.name || '未提供'}</td>
+                            <td class="px-6 py-4">${data.email || '未提供'}</td>
+                            <td class="px-6 py-4 text-slate-500">${formattedDate}</td>
+                            <td class="px-6 py-4 font-mono text-xs text-slate-400">${data.uid}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } catch (error) {
+                console.error("Fetch Admin Data Error:", error);
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">載入失敗，可能權限不足或尚未登入</td></tr>';
+            }
+        }
 
-回傳格式限制：
-你必須且只能回傳一個合法的 JSON 字串，不可包含 markdown 標記 (如 \`\`\`json)，也不要有額外說明。
-JSON 結構必須完全符合以下格式：
-{
-  "overallGrade": "字串，例如 A+, A, B+, B, C, D",
-  "summary": "字串，2-3句話的總體溫和評價",
-  "scores": {
-    "content": 數字(0-40),
-    "structure": 數字(0-30),
-    "visual": 數字(0-30)
-  },
-  "strengths": ["優點1", "優點2"],
-  "weaknesses": ["觀察建議1", "觀察建議2"],
-  "actionItems": ["具體行動1", "具體行動2"]
-}
-`;
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-800 text-white',
+                success: 'bg-green-600 text-white',
+                error: 'bg-red-600 text-white',
+                warning: 'bg-yellow-500 text-white'
+            };
+            toast.className = `${colors[type]} px-4 py-3 rounded-lg shadow-lg text-sm transition-opacity duration-300 opacity-0 translate-y-2 transform flex items-center`;
+            toast.innerHTML = message;
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+            });
 
-        async function fetchGeminiWithRetry(url, payload, maxRetries = 3) {
-            for (let i = 0; i < maxRetries; i++) {
-                const response = await fetch(url, {
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function toggleSettingsModal() {
+            if (elements.settingsModal.classList.contains('hidden')) {
+                elements.apiKeyInput.value = AppState.geminiApiKey;
+                elements.settingsModal.classList.remove('hidden');
+            } else {
+                elements.settingsModal.classList.add('hidden');
+            }
+        }
+
+        function saveSettings() {
+            const key = elements.apiKeyInput.value.trim();
+            AppState.geminiApiKey = key;
+            localStorage.setItem('researchAsst_apiKey', key);
+            toggleSettingsModal();
+            showToast('設定已儲存', 'success');
+        }
+
+        function switchTab(tabId) {
+            elements.contentReport.classList.add('hidden');
+            elements.contentList.classList.add('hidden');
+            elements.tabReport.classList.remove('text-brand-600', 'border-brand-600', 'bg-white');
+            elements.tabReport.classList.add('text-slate-500', 'border-transparent');
+            elements.tabList.classList.remove('text-brand-600', 'border-brand-600', 'bg-white');
+            elements.tabList.classList.add('text-slate-500', 'border-transparent');
+
+            if (tabId === 'report') {
+                elements.contentReport.classList.remove('hidden');
+                elements.tabReport.classList.remove('text-slate-500', 'border-transparent');
+                elements.tabReport.classList.add('text-brand-600', 'border-brand-600', 'bg-white');
+            } else {
+                elements.contentList.classList.remove('hidden');
+                elements.tabList.classList.remove('text-slate-500', 'border-transparent');
+                elements.tabList.classList.add('text-brand-600', 'border-brand-600', 'bg-white');
+            }
+        }
+
+        function addStatus(msg, isLoader = true) {
+            const li = document.createElement('li');
+            li.className = 'flex items-center text-slate-700';
+            li.innerHTML = isLoader ? `<span class="loader mr-3"></span> ${msg}` : `<svg class="w-5 h-5 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${msg}`;
+            elements.statusList.appendChild(li);
+            return li;
+        }
+
+        function updateStatus(element, newMsg, success = true) {
+            if(success) {
+                element.innerHTML = `<svg class="w-5 h-5 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${newMsg}`;
+            } else {
+                element.innerHTML = `<svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> <span class="text-red-600">${newMsg}</span>`;
+            }
+        }
+
+        async function callGemini(prompt, systemInstruction = null) {
+            // Note: If AppState.geminiApiKey is empty, it's expected the host environment injects it.
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${AppState.geminiApiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+            
+            if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
-                if (response.ok) return await response.json();
-                
-                if (response.status === 429) {
-                    const waitTime = Math.pow(2, i) * 1000;
-                    console.log(`429 Too Many Requests. Retrying in ${waitTime}ms...`);
-                    await new Promise(r => setTimeout(r, waitTime));
-                } else {
-                    const errText = await response.text();
-                    throw new Error(`API Error ${response.status}: ${errText}`);
+
+                if (!response.ok) {
+                    if (response.status === 400 || response.status === 401 || response.status === 403) {
+                        throw new Error('AUTH_ERROR');
+                    }
+                    throw new Error(`API 錯誤: ${response.status}`);
                 }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error('API 回傳格式異常');
+                
+                return text;
+            } catch (error) {
+                console.error("Gemini call failed:", error);
+                throw error;
             }
-            throw new Error("超過最大重試次數 (Max retries reached)");
         }
 
-        async function startEvaluation() {
-            if (state.uploadedFiles.length === 0) {
-                showToast("請先上傳至少一份報告檔案", 'error');
-                return;
-            }
+        async function generateSearchQuery(naturalQuery) {
+            const sysInstruction = `你是一位專業的教育學術圖書館員與資料庫檢索專家。
+請將使用者輸入的研究問題，轉換為「美國教育資源資訊中心 (ERIC)」專用的精確 Boolean Search Query。
+規則：
+1. 提取核心概念，使用同義詞擴充 (使用 OR)。
+2. 概念之間使用 AND 連接。
+3. 若為精確詞組，請加上雙引號 (例如 "STEM Education")。
+4. 盡量使用 ERIC 描述詞 (Thesaurus) 概念。
+5. **絕對只回傳最終的查詢字串，不要包含任何解釋、Markdown 語法或引號。**`;
             
-            const apiKey = document.getElementById('apiKey').value.trim();
-            if (!apiKey) {
-                showToast("請輸入 Gemini API Key", 'error');
-                document.getElementById('apiKey').focus();
+            const prompt = `使用者的研究問題：\n${naturalQuery}`;
+            
+            return await callGemini(prompt, sysInstruction);
+        }
+
+        function copyQuery() {
+            const text = elements.displayQuery.innerText;
+            if(text) {
+                // Try modern API first, fallback to execCommand for iframes
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => showToast('已複製檢索詞'));
+                } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-999999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast('已複製檢索詞');
+                    } catch (err) {
+                        showToast('複製失敗', 'error');
+                    }
+                    textArea.remove();
+                }
+            }
+        }
+
+        async function fetchEricData(booleanQuery) {
+            // Force peer-reviewed, limit to 20 for token constraints & local storage
+            const formattedQuery = encodeURIComponent(booleanQuery);
+            const ericUrl = `https://api.ies.ed.gov/eric/?search=${formattedQuery}&peerreviewed=T&rows=20&format=json`;
+            
+            try {
+                // Try direct call first
+                const res = await fetch(ericUrl);
+                if (!res.ok) throw new Error('Network response was not ok');
+                const data = await res.json();
+                return data.response?.docs || [];
+            } catch (error) {
+                console.warn("Direct ERIC fetch failed, attempting proxy (CORS fallback)...", error);
+                // Fallback E-02: Use allorigins proxy to bypass CORS
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(ericUrl)}`;
+                const resProxy = await fetch(proxyUrl);
+                const dataProxy = await resProxy.json();
+                const actualData = JSON.parse(dataProxy.contents);
+                return actualData.response?.docs || [];
+            }
+        }
+
+        function renderArticleList(articles) {
+            elements.articleListContainer.innerHTML = '';
+            
+            if (articles.length === 0) {
+                elements.articleListContainer.innerHTML = '<div class="text-center text-slate-500 py-10">查無符合條件的同儕審查文獻。</div>';
                 return;
             }
 
-            const btn = document.getElementById('startEvalBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 處理中...';
+            articles.forEach(art => {
+                const authorStr = art.author ? art.author.join('; ') : '作者不詳';
+                const year = art.publicationdateyear || '年份不詳';
+                const desc = art.description ? (art.description.length > 250 ? art.description.substring(0, 250) + '...' : art.description) : '無摘要';
+                const source = art.source || '期刊不詳';
+                const link = `https://eric.ed.gov/?id=${art.id}`;
+
+                const card = `
+                    <div class="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-base font-semibold text-brand-700 leading-tight">
+                                <a href="${link}" target="_blank" class="hover:underline">${art.title}</a>
+                            </h3>
+                            <span class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded font-medium ml-2 shrink-0">${year}</span>
+                        </div>
+                        <div class="text-sm text-slate-500 mb-2 font-medium">${authorStr} | <span class="italic">${source}</span></div>
+                        <p class="text-sm text-slate-600 line-clamp-3">${desc}</p>
+                    </div>
+                `;
+                elements.articleListContainer.insertAdjacentHTML('beforeend', card);
+            });
+        }
+
+        async function synthesizeData(articles) {
+            const sysInstruction = `你是一位資深的教育學術研究員。請根據提供的「同儕審查文獻清單」，進行深度的趨勢縱向綜述。
+請務必使用 Markdown 格式輸出，結構包含：
+# 研究趨勢綜述分析報告
+## 一、時間軸發展分析 (Timeline Evolution)
+(分析文獻隨時間推移的演進)
+## 二、核心研究主題與方法轉變 (Key Themes & Methodological Shifts)
+(歸納主要探討的主題、採用的研究方法與對象之變化)
+## 三、學術引用整合 (Synthesized Narrative)
+(撰寫一段綜合性的文獻回顧論述，必須在文中適當處標註引用，格式為 [Author, Year])
+
+注意：
+- 僅根據提供的資料進行推論，切勿過度幻想。
+- 語言請使用專業的繁體中文學術用語。`;
+
+            // Data pre-processing: Map to lighter object to save tokens
+            const simplifiedArticles = articles.map(a => ({
+                id: a.id,
+                year: a.publicationdateyear,
+                title: a.title,
+                authors: a.author ? a.author[0] : 'Unknown', // Primary author for citation
+                abstract: a.description
+            }));
+
+            // Fallback E-04: Token limit prevention - limit to top 15 by relevance/date
+            const limitedArticles = simplifiedArticles.slice(0, 15);
             
-            document.getElementById('emptyState').classList.add('hidden');
-            document.getElementById('resultDisplay').classList.add('hidden');
-            document.getElementById('loadingState').classList.remove('hidden');
-            document.getElementById('qaSection').classList.add('opacity-50', 'pointer-events-none');
+            const prompt = `文獻資料(JSON格式)：\n${JSON.stringify(limitedArticles, null, 2)}`;
+            
+            return await callGemini(prompt, sysInstruction);
+        }
+
+        async function startAnalysisProcess() {
+            if (!window.currentUser) {
+                showToast('請先登入或註冊以使用探勘功能', 'warning');
+                showAuthModal('login');
+                return;
+            }
+
+            const query = elements.queryInput.value.trim();
+            if (!query) {
+                showToast('請輸入您的研究構想', 'warning');
+                return;
+            }
+
+            // Reset UI
+            AppState.isProcessing = true;
+            elements.btnAnalyze.disabled = true;
+            elements.btnAnalyze.innerHTML = '<span class="loader w-4 h-4 mr-2 border-white border-t-transparent"></span> 處理中...';
+            
+            elements.emptyState.classList.add('hidden');
+            elements.statusPanel.classList.remove('hidden');
+            elements.statusList.innerHTML = '';
+            elements.booleanQueryCard.classList.add('hidden');
+            elements.contentReport.classList.add('hidden');
+            elements.contentList.classList.add('hidden');
+            
+            const statusStep1 = addStatus('正在解析研究意圖並生成 ERIC 布林語法...');
             
             try {
-                await extractTextFromFiles();
-                const combinedText = state.extractedTexts.join('\n\n');
+                // Step 1: Generate Query
+                const booleanQuery = await generateSearchQuery(query);
+                AppState.booleanQuery = booleanQuery;
+                updateStatus(statusStep1, '布林檢索詞生成完成');
                 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+                elements.displayQuery.innerText = booleanQuery;
+                elements.booleanQueryCard.classList.remove('hidden');
+
+                // Step 2: Fetch ERIC
+                const statusStep2 = addStatus(`正在從 ERIC 資料庫擷取同儕審查文獻...`);
+                const rawArticles = await fetchEricData(booleanQuery);
                 
-                const payload = {
-                    contents: [{
-                        role: "user",
-                        parts: [
-                            { text: RUBRIC_PROMPT },
-                            { text: "以下是學生的報告內容：\n" + combinedText }
-                        ]
-                    }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        temperature: 0.2
-                    }
+                // Fallback E-01: Empty results
+                if (!rawArticles || rawArticles.length === 0) {
+                    updateStatus(statusStep2, '查無符合條件的文獻', false);
+                    showToast('查無符合同儕審查條件之文獻。建議放寬檢索條件。', 'warning');
+                    throw new Error('EMPTY_RESULTS');
+                }
+
+                // Data processing: sort descending by year
+                const sortedArticles = rawArticles.sort((a, b) => {
+                    const yearA = parseInt(a.publicationdateyear) || 0;
+                    const yearB = parseInt(b.publicationdateyear) || 0;
+                    return yearB - yearA;
+                });
+                
+                AppState.articles = sortedArticles;
+                elements.articleCountBadge.innerText = sortedArticles.length;
+                updateStatus(statusStep2, `成功擷取 ${sortedArticles.length} 篇文獻`);
+                renderArticleList(sortedArticles);
+
+                // Step 3: Synthesize
+                const statusStep3 = addStatus('正在調用 Al 引擎進行時序趨勢分析與綜述...');
+                const markdownReport = await synthesizeData(sortedArticles);
+                
+                AppState.reportMarkdown = markdownReport;
+                updateStatus(statusStep3, '趨勢綜述分析完成');
+                
+                // Render Markdown
+                elements.reportContainer.innerHTML = marked.parse(markdownReport);
+                
+                // Save to LocalStorage (Module 4)
+                saveHistory();
+
+                // Finish
+                setTimeout(() => {
+                    elements.statusPanel.classList.add('hidden');
+                    switchTab('report');
+                }, 1000);
+
+            } catch (error) {
+                console.error("Workflow Error:", error);
+                if (error.message === 'AUTH_ERROR') {
+                    showToast('Gemini API 金鑰無效或配額耗盡', 'error');
+                    toggleSettingsModal();
+                } else if (error.message !== 'EMPTY_RESULTS') {
+                    showToast('處理過程中發生錯誤: ' + error.message, 'error');
+                    updateStatus(elements.statusList.lastElementChild, '作業中斷: ' + error.message, false);
+                }
+            } finally {
+                AppState.isProcessing = false;
+                elements.btnAnalyze.disabled = false;
+                elements.btnAnalyze.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg> 重新探勘分析';
+            }
+        }
+
+        function saveHistory() {
+            if(!AppState.booleanQuery) return;
+            try {
+                const record = {
+                    timestamp: new Date().toISOString(),
+                    naturalQuery: elements.queryInput.value,
+                    generatedQuery: AppState.booleanQuery,
+                    articlesCount: AppState.articles.length,
+                    articles: AppState.articles.map(a => ({ id: a.id, title: a.title, year: a.publicationdateyear })), // Save lighter version
+                    report: AppState.reportMarkdown
                 };
 
-                const result = await fetchGeminiWithRetry(apiUrl, payload);
-                
-                if (result.candidates && result.candidates[0].content) {
-                    const jsonStr = result.candidates[0].content.parts[0].text;
-                    state.evaluationResult = JSON.parse(jsonStr);
-                    renderDashboard(state.evaluationResult);
+                // LocalStorage fallback
+                localStorage.setItem('researchAsst_latest', JSON.stringify(record));
+
+                // Firebase Firestore Persistence
+                if (window.firebaseDb && window.currentUser) {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'researchAsst';
+                    const userId = window.currentUser.uid;
                     
-                    notifyTony("我剛剛完成了一份報告的評量，您可以點擊查看結果！");
-                    initQAContext();
-                    showToast("評估完成！", 'success');
-                } else {
-                    throw new Error("回傳格式異常");
-                }
+                    // Strict Firestore Path for user-private data
+                    const historyCollectionRef = window.fbCollection(
+                        window.firebaseDb, 
+                        'artifacts', 
+                        appId, 
+                        'users', 
+                        userId, 
+                        'history'
+                    );
 
-            } catch (error) {
-                console.error("Evaluation Error:", error);
-                showToast("評估失敗: " + error.message, 'error');
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('emptyState').classList.remove('hidden');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-rocket"></i> 重新進行評估';
+                    window.fbAddDoc(historyCollectionRef, record)
+                        .then(() => {
+                            showToast('歷史紀錄已同步至雲端', 'success');
+                        })
+                        .catch((error) => {
+                            console.error("Firestore Save Error:", error);
+                        });
+                }
+            } catch (e) {
+                console.warn("Save failed:", e);
             }
         }
 
-        function renderDashboard(data) {
-            document.getElementById('loadingState').classList.add('hidden');
-            document.getElementById('resultDisplay').classList.remove('hidden');
-            document.getElementById('resultDisplay').classList.add('flex');
-            
-            document.getElementById('qaSection').classList.remove('opacity-50', 'pointer-events-none');
-            
-            document.getElementById('evalStatus').innerHTML = '<i class="fa-solid fa-check-circle text-ntsu-600"></i> 評估完成';
-            document.getElementById('evalStatus').className = "text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200";
-
-            document.getElementById('resSummary').innerText = data.summary;
-            
-            const gradeEl = document.getElementById('resGrade');
-            gradeEl.innerText = data.overallGrade;
-            if(data.overallGrade.includes('A')) gradeEl.className = "text-3xl font-black rounded-lg text-emerald-600";
-            else if(data.overallGrade.includes('B')) gradeEl.className = "text-3xl font-black rounded-lg text-blue-600";
-            else gradeEl.className = "text-3xl font-black rounded-lg text-amber-500";
-
-            document.getElementById('score1').innerText = data.scores.content + '/40';
-            document.getElementById('score2').innerText = data.scores.structure + '/30';
-            document.getElementById('score3').innerText = data.scores.visual + '/30';
-            
-            setTimeout(() => {
-                document.getElementById('bar1').style.width = (data.scores.content / 40 * 100) + '%';
-                document.getElementById('bar2').style.width = (data.scores.structure / 30 * 100) + '%';
-                document.getElementById('bar3').style.width = (data.scores.visual / 30 * 100) + '%';
-            }, 100);
-
-            document.getElementById('resStrengths').innerHTML = data.strengths.map(s => `<li><i class="fa-solid fa-check mr-2 opacity-50"></i>${s}</li>`).join('');
-            document.getElementById('resWeaknesses').innerHTML = data.weaknesses.map(w => `<li><i class="fa-solid fa-eye mr-2 opacity-50"></i>${w}</li>`).join('');
-            document.getElementById('resActionItems').innerHTML = data.actionItems.map(a => `<li><i class="fa-solid fa-arrow-right mr-2 opacity-50"></i>${a}</li>`).join('');
-        }
-
-        function loadSampleReport() {
-            const mockFile = new File(["This is a mock presentation about sustainable tourism in Taiwan. It lacks data charts but has good structure."], "休閒農業發展簡報.pptx", {type: "application/vnd.openxmlformats-officedocument.presentationml.presentation"});
-            state.uploadedFiles = [mockFile];
-            updateFileListUI();
-            
-            if(!document.getElementById('apiKey').value) {
-                 showToast("已載入範例報告。請輸入您的 API Key 來測試。", "info");
-            }
-        }
-
-        function initQAContext() {
-            state.qaChatHistory = [
-                {
-                    role: "user",
-                    parts: [{ text: `我剛剛提交了一份報告，你的評估結果如下(JSON): ${JSON.stringify(state.evaluationResult)}。請扮演導師，根據此報告內容回答我接下來的問題。` }]
-                },
-                {
-                    role: "model",
-                    parts: [{ text: "好的，我已經了解這份報告的評量結果。針對這份報告，你有什麼想進一步討論或不清楚的地方嗎？" }]
-                }
-            ];
-            
-            const messagesDiv = document.getElementById('qaMessages');
-            messagesDiv.innerHTML = '';
-            appendMessageToUI(messagesDiv, 'model', '好的，我已經了解這份報告的評量結果。針對這份報告，你有什麼想進一步討論或不清楚的地方嗎？');
-        }
-
-        async function sendQAMessage() {
-            const input = document.getElementById('qaInput');
-            const text = input.value.trim();
-            const apiKey = document.getElementById('apiKey').value;
-            
-            if (!text || !apiKey) {
-                if(!apiKey) showToast("API Key 遺失，無法發送", "error");
+        function exportData(format) {
+            if (!AppState.reportMarkdown || AppState.articles.length === 0) {
+                showToast('尚無資料可供匯出', 'warning');
                 return;
             }
-            
-            input.value = '';
-            const messagesDiv = document.getElementById('qaMessages');
-            
-            appendMessageToUI(messagesDiv, 'user', text);
-            state.qaChatHistory.push({ role: "user", parts: [{ text }] });
-            
-            const loadingId = 'loading-' + Date.now();
-            appendMessageToUI(messagesDiv, 'model', '<i class="fa-solid fa-ellipsis hover:animate-ping"></i>思考中...', loadingId);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-                const payload = { contents: state.qaChatHistory };
-                
-                const result = await fetchGeminiWithRetry(apiUrl, payload);
-                const replyText = result.candidates[0].content.parts[0].text;
-                
-                document.getElementById(loadingId).remove();
-                appendMessageToUI(messagesDiv, 'model', marked.parse(replyText));
-                
-                state.qaChatHistory.push({ role: "model", parts: [{ text: replyText }] });
-                
-            } catch (error) {
-                document.getElementById(loadingId).innerText = "抱歉，連線發生錯誤。";
-                document.getElementById(loadingId).classList.add('text-rose-500');
-            }
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            let content = '';
+            let filename = '';
+            let mimeType = '';
 
-        function toggleTony() {
-            const win = document.getElementById('tonyWindow');
-            const badge = document.getElementById('tonyBadge');
-            
-            if (win.classList.contains('hidden')) {
-                win.classList.remove('hidden');
-                setTimeout(() => {
-                    win.classList.remove('scale-y-0', 'opacity-0');
-                    win.classList.add('scale-y-100', 'opacity-100');
-                }, 10);
-                badge.classList.add('hidden');
-            } else {
-                win.classList.remove('scale-y-100', 'opacity-100');
-                win.classList.add('scale-y-0', 'opacity-0');
-                setTimeout(() => {
-                    win.classList.add('hidden');
-                }, 300);
-            }
-        }
-
-        function notifyTony(msg) {
-            const badge = document.getElementById('tonyBadge');
-            if (document.getElementById('tonyWindow').classList.contains('hidden')) {
-                badge.classList.remove('hidden');
-            }
-            const msgDiv = document.getElementById('tonyMessages');
-            appendTonyMessage('model', msg);
-            msgDiv.scrollTop = msgDiv.scrollHeight;
-        }
-
-        async function sendTonyMessage() {
-            const input = document.getElementById('tonyInput');
-            const text = input.value.trim();
-            const apiKey = document.getElementById('apiKey').value;
-            
-            if (!text) return;
-            if (!apiKey) {
-                showToast("請在左側面板輸入 API Key", "error");
-                return;
-            }
-            
-            input.value = '';
-            appendTonyMessage('user', text);
-            
-            if (state.tonyChatHistory.length === 0) {
-                 state.tonyChatHistory.push({
-                    role: "user",
-                    parts: [{ text: "系統提示: 你是 Bonjour 老師，國立體育大學休閒產業經營系的AI導師。你幽默、熱情、正向。請簡短回覆學生。" }]
-                 });
-                 state.tonyChatHistory.push({
-                    role: "model",
-                    parts: [{ text: "沒問題！我是 Bonjour 老師，隨時為大家解答休產系與報告撰寫的疑難雜症！" }]
-                 });
-            }
-            
-            state.tonyChatHistory.push({ role: "user", parts: [{ text }] });
-            
-            const msgDiv = document.getElementById('tonyMessages');
-            const loadingId = 'tony-loading-' + Date.now();
-            appendTonyMessage('model', '<span class="flex gap-1 items-center h-4"><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></span>', loadingId);
-            
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
-                const payload = { contents: state.tonyChatHistory };
-                
-                const result = await fetchGeminiWithRetry(apiUrl, payload);
-                const replyText = result.candidates[0].content.parts[0].text;
-                
-                document.getElementById(loadingId).closest('.flex').remove();
-                appendTonyMessage('model', marked.parse(replyText));
-                
-                state.tonyChatHistory.push({ role: "model", parts: [{ text: replyText }] });
-                
-            } catch (error) {
-                document.getElementById(loadingId).innerText = "連線異常，請稍後再試。";
-            }
-            msgDiv.scrollTop = msgDiv.scrollHeight;
-        }
-
-        function appendTonyMessage(role, htmlContent, id = null) {
-            const div = document.getElementById('tonyMessages');
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex gap-2 ${role === 'user' ? 'flex-row-reverse' : ''}`;
-            
-            let avatar = '';
-            if(role === 'model'){
-                avatar = `<div class="w-8 h-8 rounded-full bg-ntsu-100 flex-shrink-0 flex items-center justify-center border border-ntsu-200 mt-1">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bonjour" alt="Bonjour" class="w-full h-full rounded-full">
-                          </div>`;
+            if (format === 'md') {
+                content = AppState.reportMarkdown;
+                filename = `researchAsst_report_${timestamp}.md`;
+                mimeType = 'text/markdown';
+            } else if (format === 'json') {
+                const exportObj = {
+                    query: elements.queryInput.value,
+                    booleanQuery: AppState.booleanQuery,
+                    exportDate: timestamp,
+                    articles: AppState.articles
+                };
+                content = JSON.stringify(exportObj, null, 2);
+                filename = `researchAsst_data_${timestamp}.json`;
+                mimeType = 'application/json';
+            } else if (format === 'word') {
+                // 將渲染後的 HTML 包裝成 Word 可讀取的格式，並設定基本樣式
+                const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><meta charset='utf-8'><title>Research Report</title>
+                <style>
+                    body { font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif; color: #333; }
+                    h1 { font-size: 20pt; color: #0f172a; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+                    h2 { font-size: 16pt; color: #1e293b; margin-top: 15px; }
+                    h3 { font-size: 14pt; color: #334155; }
+                    p, li { font-size: 12pt; line-height: 1.6; }
+                    blockquote { border-left: 3px solid #ccc; padding-left: 10px; color: #666; font-style: italic; }
+                </style></head><body>`;
+                const footer = "</body></html>";
+                content = header + elements.reportContainer.innerHTML + footer;
+                filename = `researchAsst_report_${timestamp}.doc`;
+                mimeType = 'application/msword';
             }
 
-            const bgClass = role === 'user' ? 'bg-ntsu-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm';
+            // 對於 Word 輸出，需在最前方加入 UTF-8 BOM (\ufeff) 讓 MS Word 正確辨識中文編碼
+            const blobContent = format === 'word' ? '\ufeff' + content : content;
+            const blob = new Blob([blobContent], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`已匯出 ${filename}`, 'success');
+        }
+
+        // Initialize state if returning
+        window.addEventListener('DOMContentLoaded', () => {
+            const saved = localStorage.getItem('researchAsst_latest');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    elements.queryInput.value = data.naturalQuery || '';
+                } catch(e) {}
+            }
             
-            wrapper.innerHTML = `
-                ${avatar}
-                <div class="${bgClass} p-3 rounded-2xl shadow-sm max-w-[80%] markdown-body text-sm" ${id ? `id="${id}"` : ''}>
-                    ${htmlContent}
-                </div>
-            `;
-            div.appendChild(wrapper);
-            div.scrollTop = div.scrollHeight;
-        }
-
-        function appendMessageToUI(container, role, htmlContent, id = null) {
-            const div = document.createElement('div');
-            div.className = `p-3 rounded-xl text-sm w-fit max-w-[85%] ${
-                role === 'user' ? 'bg-blue-100 text-blue-900 ml-auto rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm markdown-body'
-            }`;
-            if (id) div.id = id;
-            div.innerHTML = htmlContent;
-            container.appendChild(div);
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            
-            let colorClasses = 'bg-slate-800 text-white';
-            let icon = 'fa-info-circle text-blue-400';
-            if (type === 'error') { colorClasses = 'bg-rose-50 border border-rose-200 text-rose-800'; icon = 'fa-circle-xmark text-rose-500'; }
-            else if (type === 'success') { colorClasses = 'bg-emerald-50 border border-emerald-200 text-emerald-800'; icon = 'fa-circle-check text-emerald-500'; }
-            
-            toast.className = `${colorClasses} px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm transform transition-all translate-x-full opacity-0 duration-300`;
-            toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i><span>${message}</span>`;
-            
-            container.appendChild(toast);
-            
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-x-full', 'opacity-0');
-            });
-            
-            setTimeout(() => {
-                toast.classList.add('translate-x-full', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        function openModal(id, contentId) {
-            const modal = document.getElementById(id);
-            const content = document.getElementById(contentId);
-            modal.classList.remove('hidden');
-            requestAnimationFrame(() => {
-                content.classList.remove('scale-95', 'opacity-0');
-            });
-        }
-
-        function closeModal(id, contentId) {
-            const modal = document.getElementById(id);
-            const content = document.getElementById(contentId);
-            content.classList.add('scale-95', 'opacity-0');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
-        }
-
-        function toggleAuthModal() {
-            const modal = document.getElementById('authModal');
-            if(modal.classList.contains('hidden')){
-                openModal('authModal', 'authModalContent');
-            } else {
-                closeModal('authModal', 'authModalContent');
+            // Check online status E-05
+            if(!navigator.onLine) {
+                showToast('目前處於離線狀態，無法進行新的探勘。', 'warning');
             }
-        }
-        
-        function toggleForgotModal() {
-            closeModal('authModal', 'authModalContent');
-            const modal = document.getElementById('forgotModal');
-            if(modal.classList.contains('hidden')){
-                setTimeout(() => openModal('forgotModal', 'forgotModalContent'), 200);
-            } else {
-                closeModal('forgotModal', 'forgotModalContent');
-            }
-        }
-
-        function toggleAdminModal() {
-            const modal = document.getElementById('adminModal');
-            if(modal.classList.contains('hidden')){
-                openModal('adminModal', 'adminModalContent');
-                if(window.loadAdminData) window.loadAdminData();
-            } else {
-                closeModal('adminModal', 'adminModalContent');
-            }
-        }
-
-        function switchAuthTab(tab) {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const tabBtnLogin = document.getElementById('tabBtnLogin');
-            const tabBtnRegister = document.getElementById('tabBtnRegister');
-
-            if (tab === 'login') {
-                loginForm.classList.remove('hidden');
-                loginForm.classList.add('flex');
-                registerForm.classList.add('hidden');
-                registerForm.classList.remove('flex');
-                
-                tabBtnLogin.className = "flex-1 py-3 text-sm font-bold text-ntsu-800 border-b-2 border-ntsu-700 bg-white transition-colors";
-                tabBtnRegister.className = "flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent bg-slate-50 hover:bg-white transition-colors";
-            } else {
-                registerForm.classList.remove('hidden');
-                registerForm.classList.add('flex');
-                loginForm.classList.add('hidden');
-                loginForm.classList.remove('flex');
-                
-                tabBtnRegister.className = "flex-1 py-3 text-sm font-bold text-ntsu-800 border-b-2 border-ntsu-700 bg-white transition-colors";
-                tabBtnLogin.className = "flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent bg-slate-50 hover:bg-white transition-colors";
-            }
-        }
-
-        const tonyHeader = document.getElementById('tonyHeader');
-        const tonyWindow = document.getElementById('tonyWindow');
-        let isDragging = false, currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
-
-        tonyHeader.addEventListener("mousedown", dragStart);
-        document.addEventListener("mouseup", dragEnd);
-        document.addEventListener("mousemove", drag);
-
-        function dragStart(e) {
-            initialX = e.clientX - xOffset;
-            initialY = e.clientY - yOffset;
-            if (e.target === tonyHeader || tonyHeader.contains(e.target)) isDragging = true;
-        }
-
-        function dragEnd() {
-            initialX = currentX; initialY = currentY; isDragging = false;
-        }
-
-        function drag(e) {
-            if (isDragging) {
-                e.preventDefault();
-                currentX = e.clientX - initialX; currentY = e.clientY - initialY;
-                xOffset = currentX; yOffset = currentY;
-                setTranslate(currentX, currentY, tonyWindow);
-            }
-        }
-
-        function setTranslate(xPos, yPos, el) { el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`; }
-    </script>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendEmailVerification, sendPasswordResetEmail, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDKBVbfdMvNgM02K4yP-PjbwZNSRTzm3Bo",
-            authDomain: "score-ranking-819e5.firebaseapp.com",
-            projectId: "score-ranking-819e5",
-            storageBucket: "score-ranking-819e5.firebasestorage.app",
-            messagingSenderId: "680956314830",
-            appId: "1:680956314830:web:0df049f2c69834c25a7c9f"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        let currentUser = null;
-        const APP_ID = 'ntsu-report-evaluator';
-
-        async function initFirebase() {
-            try {
-                if (!auth.currentUser) await signInAnonymously(auth);
-            } catch (error) {
-                console.error("Firebase Auth Error:", error);
-            }
-        }
-        
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                if (!user.isAnonymous) {
-                    document.getElementById('loginHeaderBtn').classList.add('hidden');
-                    document.getElementById('userHeaderInfo').classList.remove('hidden');
-                    document.getElementById('userHeaderInfo').classList.add('flex');
-                    document.getElementById('headerUserName').innerText = user.displayName || user.email.split('@')[0];
-                } else {
-                    document.getElementById('loginHeaderBtn').classList.remove('hidden');
-                    document.getElementById('userHeaderInfo').classList.add('hidden');
-                    document.getElementById('userHeaderInfo').classList.remove('flex');
-                }
-            } else {
-                currentUser = null;
-                document.getElementById('loginHeaderBtn').classList.remove('hidden');
-                document.getElementById('userHeaderInfo').classList.add('hidden');
-                document.getElementById('userHeaderInfo').classList.remove('flex');
-            }
+            window.addEventListener('offline', () => showToast('網路連線已中斷', 'error'));
+            window.addEventListener('online', () => showToast('網路連線已恢復', 'success'));
         });
 
-        initFirebase();
-
-        window.handleRegister = async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
-            const password = document.getElementById('regPassword').value;
-            const btn = document.getElementById('regBtn');
-            
-            try {
-                btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 處理中...';
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                
-                await updateProfile(user, { displayName: name });
-                await sendEmailVerification(user);
-                
-                const userRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'profiles', user.uid);
-                await setDoc(userRef, { name, email, createdAt: Date.now() });
-                
-                showToast('註冊成功！請至信箱收取確認信。', 'success');
-                toggleAuthModal();
-                document.getElementById('registerForm').reset();
-            } catch(err) {
-                showToast('註冊失敗：' + err.message, 'error');
-            } finally {
-                btn.disabled = false; btn.innerHTML = '建立帳號';
-            }
-        };
-
-        window.handleLogin = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const btn = document.getElementById('loginBtn');
-            
-            try {
-                btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 登入中...';
-                await signInWithEmailAndPassword(auth, email, password);
-                showToast('登入成功', 'success');
-                toggleAuthModal();
-                document.getElementById('loginForm').reset();
-            } catch(err) {
-                showToast('登入失敗，請檢查帳號密碼', 'error');
-            } finally {
-                btn.disabled = false; btn.innerHTML = '登入系統';
-            }
-        };
-
-        window.handleLogout = async () => {
-            try {
-                await signOut(auth);
-                await signInAnonymously(auth);
-                showToast('您已成功登出', 'info');
-            } catch (error) {
-                showToast('登出錯誤', 'error');
-            }
-        };
-
-        window.handleResetPassword = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('forgotEmail').value;
-            const btn = document.getElementById('resetBtn');
-            
-            try {
-                btn.disabled = true; btn.innerText = '發送中...';
-                await sendPasswordResetEmail(auth, email);
-                showToast('密碼重設信已寄出', 'success');
-                toggleForgotModal();
-                document.getElementById('forgotEmail').value = '';
-            } catch(err) {
-                showToast('發送失敗：' + err.message, 'error');
-            } finally {
-                btn.disabled = false; btn.innerText = '發送連結';
-            }
-        };
-
-        window.loadAdminData = async () => {
-            const tbody = document.getElementById('adminTableBody');
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2 text-sm">載入資料中...</p></td></tr>';
-            try {
-                const profilesRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'profiles');
-                const snapshot = await getDocs(profilesRef);
-                const users = snapshot.docs.map(d => d.data()).sort((a, b) => b.createdAt - a.createdAt);
-                
-                if (users.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500">尚無會員資料</td></tr>';
-                    return;
-                }
-                
-                tbody.innerHTML = users.map(u => `
-                    <tr class="hover:bg-slate-50/50 transition-colors">
-                        <td class="py-3 px-5 text-slate-800 font-medium">
-                            <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-xs text-slate-500">${u.name ? u.name.charAt(0) : '?'}</div>
-                                ${u.name || '未提供'}
-                            </div>
-                        </td>
-                        <td class="py-3 px-5 text-slate-600">${u.email}</td>
-                        <td class="py-3 px-5 text-slate-500 text-xs">${new Date(u.createdAt).toLocaleString('zh-TW')}</td>
-                        <td class="py-3 px-5 text-right"><span class="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-1 rounded-full font-bold">啟用</span></td>
-                    </tr>
-                `).join('');
-                
-            } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-rose-500">載入失敗：${err.message}</td></tr>`;
-            }
-        };
-
-        window.saveToCloud = async function() {
-            if (!currentUser || currentUser.isAnonymous) {
-                showToast('請先「登入系統」才能儲存至雲端', 'error');
-                toggleAuthModal();
-                return;
-            }
-            if (!state.evaluationResult) return;
-
-            const btn = document.getElementById('saveCloudBtn');
-            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 儲存中...';
-
-            try {
-                const evalRef = collection(db, 'artifacts', APP_ID, 'users', currentUser.uid, 'evaluations');
-                await addDoc(evalRef, {
-                    timestamp: Date.now(),
-                    grade: state.evaluationResult.overallGrade,
-                    summary: state.evaluationResult.summary,
-                    scores: state.evaluationResult.scores,
-                    filesInfo: state.uploadedFiles.map(f => ({ name: f.name, size: f.size }))
-                });
-                showToast('評估結果已儲存至雲端！', 'success');
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> 已儲存';
-                btn.classList.replace('bg-slate-800', 'bg-emerald-600');
-                btn.classList.replace('hover:bg-slate-900', 'hover:bg-emerald-700');
-            } catch (error) {
-                showToast('儲存失敗：' + error.message, 'error');
-                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 重試儲存';
-            }
-        };
     </script>
 </body>
 </html>
